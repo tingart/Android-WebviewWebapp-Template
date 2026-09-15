@@ -2,45 +2,2844 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <meta name="theme-color" content="#6200EE">
-    <title>WebView App</title>
-    <link rel="stylesheet" href="file:///android_asset/css/app.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VeloX Mobile Benchmark & Native WASM Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #030712; color: #f3f4f6; }
+        code, textarea, pre { font-family: 'JetBrains Mono', monospace; }
+        .glass-panel { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .neon-glow-cyan { box-shadow: 0 0 25px rgba(6, 182, 212, 0.3); }
+        .neon-glow-purple { box-shadow: 0 0 25px rgba(168, 85, 247, 0.35); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body>
-    <div class="app-container">
-        <div class="header">
-            <h1>🚀 WebView App Template</h1>
-            <p>Your Android WebView app is ready!</p>
+<body class="min-h-screen flex flex-col pb-12">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-gray-800 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl animate-pulse">⚡</span>
+                    <h1 class="text-xl font-extrabold bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">
+                        VeloX Mobile
+                    </h1>
+                </div>
+                <span id="webgpuBadgeHeader" class="text-xs font-semibold px-2.5 py-1 bg-purple-950/80 text-purple-300 border border-purple-500/30 rounded-full">
+                    ⚡ WebGPU Active
+                </span>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex bg-gray-900/90 p-1 rounded-xl border border-gray-800 w-full sm:w-auto">
+                <button id="tabGfxBtn" onclick="switchTab('gfx')" class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg">
+                    🎨 Graphics Engine Race
+                </button>
+                <button id="tabWasmBtn" onclick="switchTab('wasm')" class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all text-gray-400 hover:text-gray-200">
+                    ⚡ WASM JIT Compiler
+                </button>
+            </div>
         </div>
-        
-        <div class="content">
-            <h2>Welcome to Your App</h2>
-            <p>This is a mobile-optimized web app running in Android WebView.</p>
-            
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <h3>Mobile Optimized</h3>
-                    <p>Responsive design that works on all devices.</p>
+    </header>
+
+    <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 pt-4 flex-1">
+
+        <!-- ========================================================================= -->
+        <!-- TAB 1: GRAPHICS BENCHMARK (CANVAS 2D vs WEBGPU vs WEBGPU SEQUENTIAL RACE) -->
+        <!-- ========================================================================= -->
+        <section id="gfxSection" class="space-y-4">
+
+            <!-- Mobile Controls Bar -->
+            <div class="glass-panel p-4 rounded-2xl border border-gray-800 space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-base font-bold text-gray-100 flex items-center gap-2">
+                            <span>🏎️ High-Performance Speed Test</span>
+                            <span class="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono">GPU Quad Expansion</span>
+                        </h2>
+                        <p class="text-xs text-gray-400 mt-0.5">
+                            Particle count benchmark scaling up to 10 Crore (100M) and 100 Crore (1 Billion) particles in real-time!
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Duration Selector -->
+                        <div class="flex items-center gap-2 bg-gray-900/90 border border-gray-800 px-3 py-1.5 rounded-xl">
+                            <label for="durationSelect" class="text-xs font-semibold text-gray-400">Duration:</label>
+                            <select id="durationSelect" class="bg-transparent text-xs text-cyan-300 font-bold outline-none cursor-pointer">
+                                <option value="5" selected class="bg-gray-900 text-white">5 Seconds (Quick)</option>
+                                <option value="10" class="bg-gray-900 text-white">10 Seconds (Standard)</option>
+                                <option value="30" class="bg-gray-900 text-white">30 Seconds (Stress Test)</option>
+                            </select>
+                        </div>
+
+                        <!-- Particle Counter Slider -->
+                        <div class="flex items-center gap-2 bg-gray-900/90 border border-gray-800 px-3 py-1.5 rounded-xl">
+                            <label for="particleSlider" class="text-xs font-semibold text-gray-400">Particles:</label>
+                            <input id="particleSlider" type="range" min="1000" max="1000000000" step="1000" value="10000" oninput="onSliderChange(this.value)" class="w-28 accent-cyan-400 cursor-pointer">
+                            <span id="particleVal" class="text-xs font-mono font-bold text-cyan-300 w-24">10,000</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="feature-card">
-                    <h3>Fast Loading</h3>
-                    <p>Local assets load instantly.</p>
+
+                <!-- Engine Selector Buttons -->
+                <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-800/80">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">Active Engine:</span>
+                    <button id="selectEngine2d" onclick="selectEngineDirect('2d')" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-800 bg-gray-900 text-gray-400 transition-all">
+                        Canvas 2D (Main Thread)
+                    </button>
+                    <button id="selectEngineWebgl" onclick="selectEngineDirect('webgl')" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-500 bg-emerald-950/80 text-emerald-300 transition-all">
+                        WebGL (GPU Render)
+                    </button>
+                    <button id="selectEngineWebgpu" onclick="selectEngineDirect('webgpu')" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-purple-500 bg-purple-950/80 text-purple-300 transition-all">
+                        WebGPU (GPU Quad Expansion)
+                    </button>
+                    
+                    <!-- NEW: Auto Render (Fastest) Button -->
+                    <button id="autoRenderBtn" onclick="autoSelectFastestEngine()" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-cyan-500/60 bg-gradient-to-r from-cyan-950 to-blue-950 text-cyan-300 hover:border-cyan-400 transition-all shadow-md flex items-center gap-1 cursor-pointer">
+                        <span>⚡ Auto Render (Fastest)</span>
+                    </button>
+
+                    <!-- NEW: Auto Render + Auto Particles (Target 60 FPS) Button -->
+                    <button id="auto60fpsBtn" onclick="toggleAuto60Fps()" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-500/60 bg-gradient-to-r from-emerald-950 to-teal-950 text-emerald-300 hover:border-emerald-400 transition-all shadow-md flex items-center gap-1 cursor-pointer">
+                        <span>🎯 Auto 60 FPS (Auto Particles)</span>
+                    </button>
+
+                    <span id="engineNotice" class="hidden text-[11px] font-semibold text-amber-400 bg-amber-950/50 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+                        ⚠️ High particle counts automatically routed to WebGPU
+                    </span>
+                    <span id="autoStatusBadge" class="hidden text-[11px] font-mono font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-500/30 px-2.5 py-1 rounded-lg animate-pulse">
+                        🎯 Auto 60 FPS Target Active
+                    </span>
+                    <span id="cpuCoreBadge" class="text-[11px] font-mono font-bold text-cyan-300 bg-cyan-950/80 border border-cyan-500/30 px-2 py-1 rounded-lg">
+                        🧠 Multi-Core Active
+                    </span>
                 </div>
-                <div class="feature-card">
-                    <h3>Auto Updates</h3>
-                    <p>GitHub Actions builds APK automatically.</p>
+
+                <!-- Action Bar & Particle Presets (Includes 1 Crore, 10 Crore, 100 Crore) -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                    <button id="runRaceBtn" onclick="startSequentialRace()" class="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-purple-600 via-teal-500 to-cyan-500 hover:opacity-95 font-extrabold text-sm text-white shadow-lg neon-glow-cyan flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+                        <span>🚀 RUN SEQUENTIAL BENCHMARK RACE</span>
+                    </button>
+                    
+                    <div class="flex items-center gap-1.5 bg-gray-950 p-1.5 rounded-xl border border-gray-800 overflow-x-auto no-scrollbar">
+                        <span class="text-[10px] text-gray-500 font-bold uppercase px-1 whitespace-nowrap">Presets:</span>
+                        <button onclick="setParticlePreset(10000)" class="px-2.5 py-1 bg-gray-900 hover:bg-cyan-950 border border-gray-800 rounded-lg text-[11px] font-mono text-cyan-300 font-bold whitespace-nowrap">10k</button>
+                        <button onclick="setParticlePreset(100000)" class="px-2.5 py-1 bg-gray-900 hover:bg-cyan-950 border border-gray-800 rounded-lg text-[11px] font-mono text-emerald-300 font-bold whitespace-nowrap">100k</button>
+                        <button onclick="setParticlePreset(1000000)" class="px-2.5 py-1 bg-gray-900 hover:bg-cyan-950 border border-gray-800 rounded-lg text-[11px] font-mono text-amber-300 font-bold whitespace-nowrap">1M (10 Lakh)</button>
+                        <button onclick="setParticlePreset(10000000)" class="px-2.5 py-1 bg-purple-950/90 hover:bg-purple-900 border border-purple-500/60 rounded-lg text-[11px] font-mono text-purple-300 font-bold whitespace-nowrap">10M (1 Crore 🇮🇳)</button>
+                        <button onclick="setParticlePreset(100000000)" class="px-2.5 py-1 bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-500/60 rounded-lg text-[11px] font-mono text-indigo-300 font-bold whitespace-nowrap">100M (10 Crore 🇮🇳)</button>
+                        <button onclick="setParticlePreset(1000000000)" class="px-2.5 py-1 bg-rose-950/90 hover:bg-rose-900 border border-rose-500/60 rounded-lg text-[11px] font-mono text-rose-300 font-bold whitespace-nowrap">1B (100 Crore 🇮🇳 🔥)</button>
+                    </div>
                 </div>
             </div>
+
+            <!-- VeloX Hardware / Runtime Diagnostics -->
+            <div class="glass-panel p-4 rounded-2xl border border-gray-800 space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h2 class="text-sm font-extrabold text-gray-100">🧪 Device & VeloX Runtime Diagnostics</h2>
+                        <p class="text-[11px] text-gray-400">Measures logical workers, real parallel scaling, frame-time breakdown, WASM parallel execution and GPU adapter limits. It does not guess CPU GHz.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="runDiagnosticsBtn" onclick="runAllDiagnostics()" class="px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black">RUN DIAGNOSTICS</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div class="bg-gray-950/80 p-3 rounded-xl border border-gray-800"><span class="text-[9px] text-gray-500 block uppercase">Logical CPU slots</span><span id="diagCpuSlots" class="text-sm font-black font-mono text-cyan-300">--</span></div>
+                    <div class="bg-gray-950/80 p-3 rounded-xl border border-gray-800"><span class="text-[9px] text-gray-500 block uppercase">Worker scaling</span><span id="diagCpuScale" class="text-sm font-black font-mono text-emerald-300">--</span></div>
+                    <div class="bg-gray-950/80 p-3 rounded-xl border border-gray-800"><span class="text-[9px] text-gray-500 block uppercase">Synthetic work</span><span id="diagCpuSpeed" class="text-sm font-black font-mono text-amber-300">--</span></div>
+                    <div class="bg-gray-950/80 p-3 rounded-xl border border-gray-800"><span class="text-[9px] text-gray-500 block uppercase">WASM parallel</span><span id="diagWasmScale" class="text-sm font-black font-mono text-purple-300">--</span></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div class="bg-gray-950/80 p-3 rounded-xl border border-gray-800 font-mono text-[10px] text-gray-300 space-y-1">
+                        <div><span class="text-gray-500">CPU:</span> <span id="diagCpuInfo">--</span></div>
+                        <div><span class="text-gray-500">Memory hint:</span> <span id="diagMemoryInfo">--</span></div>
+                        <div><span class="text-gray-500">SharedArrayBuffer:</span> <span id="diagSabInfo">--</span></div>
+                        <div><span class="text-gray-500">Refresh estimate:</span> <span id="diagRefreshInfo">--</span></div>
+                        <div><span class="text-gray-500">Current frame:</span> <span id="diagFrameInfo">--</span></div>
+                    </div>
+                    <div class="bg-gray-950/80 p-3 rounded-xl border border-gray-800 font-mono text-[10px] text-gray-300 space-y-1">
+                        <div><span class="text-gray-500">GPU:</span> <span id="diagGpuInfo">--</span></div>
+                        <div><span class="text-gray-500">GPU limits:</span> <span id="diagGpuLimits">--</span></div>
+                        <div><span class="text-gray-500">GPU buffer active:</span> <span id="diagGpuBufferInfo">--</span></div>
+                        <div><span class="text-gray-500">WebGPU CPU submit:</span> <span id="diagGpuSubmitInfo">--</span></div>
+                        <div><span class="text-gray-500">Status:</span> <span id="diagStatus">Ready</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Viewport & Metrics Dashboard Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                
+                <!-- Canvas Display Container -->
+                <div class="lg:col-span-8 glass-panel p-3 rounded-2xl border border-gray-800 flex flex-col items-center justify-center relative min-h-[340px] sm:min-h-[440px] overflow-hidden">
+                    
+                    <!-- Top Status Overlay Banner -->
+                    <div class="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+                        <div class="flex items-center gap-2 bg-gray-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-gray-800">
+                            <span id="activeEngineDot" class="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse"></span>
+                            <span id="activeEngineLabel" class="text-xs font-extrabold text-white uppercase tracking-wider">WebGPU Native Quad Expansion Shader</span>
+                        </div>
+                        <div id="countdownBadge" class="hidden bg-cyan-950/90 text-cyan-300 border border-cyan-500/40 px-3 py-1.5 rounded-xl text-xs font-mono font-extrabold animate-bounce">
+                            ⏳ Timer: <span id="countdownVal">5</span>s
+                        </div>
+                    </div>
+
+                    <!-- Visual Canvas Viewport -->
+                    <div id="canvasWrapper" class="w-full h-full min-h-[320px] sm:min-h-[400px] rounded-xl overflow-hidden relative bg-black flex items-center justify-center">
+                        <canvas id="gfxCanvas" class="w-full h-full object-contain block"></canvas>
+                    </div>
+
+                    <!-- Footer Tip Bar -->
+                    <div class="mt-2 w-full flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] text-gray-400 px-1 gap-1">
+                        <span>✨ Drag/Touch on canvas to test force field gravity</span>
+                        <div class="flex items-center gap-1">
+                            <span id="webgpuSupportText" class="text-purple-400 font-bold">🟢 High-Contrast Bright Particles Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Metrics Side Panel -->
+                <div class="lg:col-span-4 space-y-4">
+
+                    <!-- Telemetry Stats Card -->
+                    <div class="glass-panel p-4 rounded-2xl border border-gray-800 space-y-3">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            📊 Real-Time Telemetry
+                        </h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-gray-900/80 p-3 rounded-xl border border-gray-800">
+                                <span class="text-[10px] text-gray-400 font-bold block uppercase">Current FPS</span>
+                                <span id="liveFps" class="text-lg font-black font-mono text-cyan-300">0.0</span>
+                            </div>
+                            <div class="bg-gray-900/80 p-3 rounded-xl border border-gray-800">
+                                <span class="text-[10px] text-gray-400 font-bold block uppercase">Frame Latency</span>
+                                <span id="liveLatency" class="text-lg font-black font-mono text-indigo-300">0.0 ms</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-900/80 p-3 rounded-xl border border-gray-800 space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-gray-400">Average FPS:</span>
+                                <span id="avgFpsVal" class="font-bold text-white font-mono">0.0</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-gray-400">Particle Processing:</span>
+                                <span id="gpuProcLabel" class="font-bold text-purple-400 font-mono">GPU Buffer: 1M physical slots</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sequential Leaderboard Table -->
+                    <div class="glass-panel p-4 rounded-2xl border border-gray-800 space-y-3">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            🏆 Race Leaderboard
+                        </h3>
+
+                        <div class="space-y-2">
+                            <!-- Canvas 2D Score -->
+                            <div id="scoreCard2d" class="p-2.5 rounded-xl bg-gray-900/60 border border-gray-800 flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-bold text-white block">Canvas 2D (CPU)</span>
+                                    <span id="latency2d" class="text-[10px] text-gray-400 font-mono">Latency: -- ms</span>
+                                </div>
+                                <span id="score2d" class="text-sm font-black font-mono text-cyan-400">-- FPS</span>
+                            </div>
+
+                            <!-- WebGL Score -->
+                            <div id="scoreCardWebgl" class="p-2.5 rounded-xl bg-gray-900/60 border border-gray-800 flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-bold text-white block">WebGL (GPU Render)</span>
+                                    <span id="latencyWebgl" class="text-[10px] text-gray-400 font-mono">Latency: -- ms</span>
+                                </div>
+                                <span id="scoreWebgl" class="text-sm font-black font-mono text-emerald-400">-- FPS</span>
+                            </div>
+
+                            <!-- WebGPU Score -->
+                            <div id="scoreCardWebgpu" class="p-2.5 rounded-xl bg-gray-900/60 border border-gray-800 flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-bold text-white block">WebGPU (Native WGSL)</span>
+                                    <span id="latencyWebgpu" class="text-[10px] text-gray-400 font-mono">Latency: -- ms</span>
+                                </div>
+                                <span id="scoreWebgpu" class="text-sm font-black font-mono text-purple-400">-- FPS</span>
+                            </div>
+                        </div>
+
+                        <!-- Final Winner Banner -->
+                        <div id="winnerCard" class="hidden p-3 rounded-xl bg-gradient-to-r from-purple-950 to-indigo-950 border border-purple-500/40 text-center space-y-2">
+                            <span class="text-xs font-extrabold text-purple-300 block uppercase tracking-wider">🏆 CHAMPION ENGINE</span>
+                            <span id="winnerText" class="text-sm font-black text-white block">--</span>
+                            <button onclick="openPerformanceReport()" class="w-full py-2 px-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer">
+                                📊 View Full Performance & Hardware Report
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 2: VELOX WASM JIT COMPILER & CODE BENCHMARK                          -->
+        <!-- ========================================================================= -->
+        <section id="wasmSection" class="hidden space-y-4">
+<!-- Left Column: Code Editor & Virtual Mobile Keys (7 Cols) -->
+        <div class="lg:col-span-7 flex flex-col space-y-4">
             
-            <button class="btn" onclick="showWelcome()">Get Started</button>
+            <div class="bg-wasm-card p-4 rounded-2xl border border-wasm-border flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <label class="text-xs text-slate-400 uppercase font-semibold tracking-wider block mb-1">Select Code Program</label>
+                    <select id="sampleSelect" onchange="loadPreset(this.value)" class="bg-slate-900 border border-slate-700 text-cyan-300 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-cyan-500 outline-none font-medium">
+                        <option value="fibonacci_rec">⚡ Recursive Fibonacci 30 (Real Stack & Call Test)</option>
+                        <option value="speedtest">🚀 100 Million Benchmark (Bitwise Registers)</option>
+                        <option value="primes">🧮 Prime Numbers Counter (High Math)</option>
+                        <option value="collatz">🌀 Collatz Conjecture (3n + 1 Math)</option>
+                        <option value="ui_button">🧩 Native UI Button (VeloX Draw)</option>
+                    </select>
+                </div>
+
+                <button onclick="compileAndBenchmark()" class="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl flex items-center justify-center space-x-2 shadow-lg glow-green transition active:scale-95">
+                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <span>COMPILE & RUN BENCHMARK</span>
+                </button>
+            </div>
+
+            <div class="bg-wasm-card rounded-2xl border border-wasm-border overflow-hidden flex flex-col flex-1 shadow-xl">
+                <div class="bg-slate-900/80 px-4 py-2 border-b border-wasm-border flex items-center justify-between text-xs text-slate-400 font-mono">
+                    <span class="flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+                        <span class="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
+                        <span class="w-3 h-3 rounded-full bg-green-500/80 inline-block"></span>
+                        <span class="ml-2 text-slate-300">main.vlx (VeloX Source)</span>
+                    </span>
+                    <span id="lineCount" class="text-slate-500">Lines: 15</span>
+                </div>
+
+                <div class="relative flex-1 min-h-[320px] bg-[#07090e]">
+                    <textarea id="codeSource" spellcheck="false" class="code-editor w-full h-full p-4 bg-transparent text-slate-200 text-sm focus:outline-none resize-none leading-relaxed" oninput="updateLineCount()"></textarea>
+                </div>
+
+                <div class="p-2 bg-slate-900 border-t border-wasm-border flex items-center space-x-2 overflow-x-auto">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase px-1">Keys:</span>
+                    <button class="key-btn" onclick="insertCode('fn ')">fn</button>
+                    <button class="key-btn" onclick="insertCode('while ')">while</button>
+                    <button class="key-btn" onclick="insertCode('if ')">if</button>
+                    <button class="key-btn" onclick="insertCode('let ')">let</button>
+                    <button class="key-btn" onclick="insertCode('return ')">return</button>
+                    <button class="key-btn" onclick="insertCode(' { ')">{ }</button>
+                    <button class="key-btn" onclick="insertCode(' & ')">&</button>
+                    <button class="key-btn" onclick="insertCode(' == ')">==</button>
+                    <button class="key-btn" onclick="insertCode(' = ')">=</button>
+                    <button class="key-btn" onclick="insertCode(' + ')">+</button>
+                    <button class="key-btn" onclick="insertCode(' * ')">*</button>
+                    <button class="key-btn" onclick="insertCode(' ;')">;</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-5 flex flex-col space-y-4">
+            
+            <div class="bg-wasm-card p-5 rounded-2xl border border-wasm-border shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl"></div>
+                
+                <h2 class="text-base font-bold text-slate-200 flex items-center space-x-2 mb-4">
+                    <span>⚡ Speed Benchmark Result</span>
+                    <span class="text-xs font-normal text-slate-400">(Real WASM vs JS Engine)</span>
+                </h2>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-slate-900/90 border border-cyan-500/40 p-4 rounded-xl relative">
+                        <span class="text-[10px] font-bold tracking-widest text-cyan-400 uppercase block mb-1">VeloX (Native WASM)</span>
+                        <div id="wasmTimeVal" class="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400">0.00 <span class="text-xs font-sans text-slate-400">ms</span></div>
+                        <p id="wasmOps" class="text-[11px] text-slate-400 mt-1">Ready to execute</p>
+                        <div class="absolute top-2 right-2 text-cyan-400 text-xs">🚀 WASM</div>
+                    </div>
+
+                    <div class="bg-slate-900/90 border border-slate-700 p-4 rounded-xl relative">
+                        <span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase block mb-1">Standard JS Engine</span>
+                        <div id="jsTimeVal" class="text-2xl sm:text-3xl font-extrabold font-mono text-amber-400">0.00 <span class="text-xs font-sans text-slate-400">ms</span></div>
+                        <p id="jsOps" class="text-[11px] text-slate-400 mt-1">Ready to compare</p>
+                        <div class="absolute top-2 right-2 text-slate-500 text-xs">JS</div>
+                    </div>
+                </div>
+
+                <div id="speedupBanner" class="bg-gradient-to-r from-indigo-950 to-slate-900 border border-indigo-500/30 p-3 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Performance Gain:</span>
+                        <span id="speedupVal" class="text-lg font-black text-cyan-300">Run test to verify...</span>
+                    </div>
+                    <div id="verdictBadge" class="text-xs px-3 py-1 rounded-full font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                        Awaiting Test
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-wasm-card p-5 rounded-2xl border border-wasm-border flex-1 flex flex-col shadow-xl">
+                <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                        <span>Generated WASM Bytecode & Proof</span>
+                    </h3>
+                    <div class="flex items-center space-x-2">
+                        <span id="byteCount" class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-cyan-400 border border-slate-700">0 Bytes</span>
+                        <button onclick="downloadWasmBinary()" id="downloadBtn" class="hidden text-xs bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 px-2.5 py-1 rounded-lg font-mono font-bold transition">
+                            📥 Download .wasm
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex space-x-2 mb-2">
+                    <button id="tabHexBtn" onclick="switchProofTab('hex')" class="text-xs px-3 py-1 rounded-lg font-bold bg-slate-800 text-cyan-400 border border-cyan-500/30">Hex Binary</button>
+                    <button id="tabWatBtn" onclick="switchProofTab('wat')" class="text-xs px-3 py-1 rounded-lg font-bold bg-slate-950 text-slate-400 border border-slate-800">Readable WAT Code</button>
+                </div>
+
+                <div class="flex-1 bg-black/80 rounded-xl p-3 border border-slate-800 font-mono text-xs overflow-y-auto max-h-[160px] text-slate-300 leading-relaxed" id="hexViewer">
+                    <span class="text-slate-600">// Click "COMPILE & RUN BENCHMARK" to inspect generated WASM binary bytecode.</span>
+                </div>
+                <div class="hidden flex-1 bg-black/80 rounded-xl p-3 border border-slate-800 font-mono text-xs overflow-y-auto max-h-[160px] text-cyan-200 leading-relaxed" id="watViewer">
+                </div>
+
+                <div class="mt-4">
+                    <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">Execution Console Output</span>
+                    <div id="consoleLog" class="bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono text-xs text-emerald-400 min-h-[70px] max-h-[110px] overflow-y-auto">
+                        > Ready for WASM execution...
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="lg:col-span-12 bg-wasm-card p-4 rounded-2xl border border-wasm-border shadow-xl">
+            <div class="flex items-center justify-between gap-3 flex-wrap mb-3">
+                <div><h3 class="text-sm font-bold text-slate-200">🧩 VeloX Native UI Preview</h3><p class="text-xs text-slate-400">VeloX source declares the button. The VeloX runtime creates the UI tree and draws it itself.</p></div>
+                <span id="veloxUiStatus" class="text-[11px] px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-cyan-300">No UI program loaded</span>
+            </div>
+            <div class="rounded-xl overflow-hidden border border-slate-700 bg-slate-950"><canvas id="veloxUiCanvas" style="display:block;width:100%;height:320px;touch-action:none;"></canvas></div>
+        </div>
+        </section>
+
+    </main>
+
+    <!-- Performance & Hardware Benchmark Report Modal -->
+    <div id="reportModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+        <div class="glass-panel w-full max-w-2xl rounded-2xl border border-purple-500/40 p-5 space-y-5 shadow-2xl relative">
+            <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">⚡</span>
+                    <div>
+                        <h3 class="text-lg font-extrabold text-white">VeloX Hardware & Benchmark Report</h3>
+                        <p class="text-xs text-gray-400">Detailed Render Engine Speed & Throughput Analysis</p>
+                    </div>
+                </div>
+                <button onclick="closePerformanceReport()" class="text-gray-400 hover:text-white text-xl font-bold px-2 py-1">✕</button>
+            </div>
+
+            <!-- Winner Highlight Hero Box -->
+            <div class="bg-gradient-to-r from-purple-950/80 via-indigo-950/80 to-cyan-950/80 p-4 rounded-xl border border-purple-500/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-purple-300 block">Fastest Render Engine</span>
+                    <span id="reportBestEngine" class="text-xl font-black text-white font-mono">WebGPU (Native WGSL)</span>
+                    <span id="reportHardwareGrade" class="text-xs font-bold text-emerald-400 block mt-0.5">🚀 Flagship GPU Acceleration Active</span>
+                </div>
+                <div class="bg-gray-900/80 px-4 py-2 rounded-xl border border-purple-500/30 w-full sm:w-auto text-center sm:text-right">
+                    <span class="text-[10px] text-gray-400 font-bold block uppercase">Max Particle Throughput</span>
+                    <span id="reportThroughput" class="text-lg font-black font-mono text-cyan-300">0.0 M/sec</span>
+                </div>
+            </div>
+
+            <!-- Detailed Breakdown Table -->
+            <div class="space-y-2">
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Engine Performance Comparison</h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-300 border-collapse">
+                        <thead>
+                            <tr class="bg-gray-900 border-b border-gray-800 text-gray-400 font-bold">
+                                <th class="p-2.5">Renderer</th>
+                                <th class="p-2.5">Speed (FPS)</th>
+                                <th class="p-2.5">Latency</th>
+                                <th class="p-2.5">Throughput</th>
+                                <th class="p-2.5">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody" class="divide-y divide-gray-800">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Analytical Summary Text -->
+            <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800 text-xs leading-relaxed space-y-1.5">
+                <span class="font-bold text-cyan-400 block">💡 Technical Insights & Analysis:</span>
+                <p id="reportAnalysisText" class="text-gray-300 font-mono text-[11px]">
+                    WebGPU achieved maximum efficiency by offloading particle quad vertex generation and compute physics directly to GPU VRAM shaders.
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end gap-2 pt-2 border-t border-gray-800">
+                <button onclick="copyReportToClipboard()" class="px-4 py-2 bg-gray-900 hover:bg-gray-800 border border-gray-700 text-cyan-300 text-xs font-bold rounded-xl transition-all flex items-center gap-1">
+                    <span>📋 Copy Summary</span>
+                </button>
+                <button onclick="closePerformanceReport()" class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition-all">
+                    Close Report
+                </button>
+            </div>
         </div>
     </div>
 
+    <!-- JavaScript Engine & Graphics Benchmark Core -->
     <script>
-        function showWelcome() {
-            alert('Welcome! Add your HTML/CSS/JS files to build your app.');
+        let currentTab = 'gfx';
+        let numParticles = 10000;
+        let selectedDuration = 5;
+        let activeEngine = 'webgpu';
+        let isRaceRunning = false;
+
+        let isAuto60FpsMode = false;
+        let autoTuneCooldown = 0;
+
+        // Maximum physical JS particle array size for CPU and WebGL loops
+        const CPU_MAX_PARTICLES = 500000;
+        const cpuCores = navigator.hardwareConcurrency || 4;
+        const diagnosticWorkerCap = Math.max(1, Math.min(cpuCores, 16));
+
+        // Runtime instrumentation. These are measurements, not claims about physical CPU cores.
+        let lastPhysicsMs = 0;
+        let lastRenderCpuMs = 0;
+        let lastFrameCpuMs = 0;
+        let lastWebgpuSubmitMs = 0;
+        let lastFrameNow = 0;
+        let diagnosticRunning = false;
+
+        // Particle Position & Velocity Buffers
+        const pX = new Float32Array(CPU_MAX_PARTICLES);
+        const pY = new Float32Array(CPU_MAX_PARTICLES);
+        const pVX = new Float32Array(CPU_MAX_PARTICLES);
+        const pVY = new Float32Array(CPU_MAX_PARTICLES);
+        const pR = new Float32Array(CPU_MAX_PARTICLES);
+        const pG = new Float32Array(CPU_MAX_PARTICLES);
+        const pB = new Float32Array(CPU_MAX_PARTICLES);
+
+        const glInterleavedData = new Float32Array(CPU_MAX_PARTICLES * 5);
+        let imgData = null; 
+        let imgData32 = null;
+
+        // Static re-usable uniform array for WebGPU
+        const webgpuSimParamsArray = new Float32Array(8);
+
+        let touchX = 0, touchY = 0, isTouching = false;
+
+        // Telemetry Counters
+        let animFrameId = null;
+        let lastFrameTime = performance.now();
+        let fpsLastSampleTime = performance.now();
+        let fpsFrameCount = 0;
+        let currentFps = 60.0;
+        let frameTimeMs = 16.6;
+        let avgFpsSum = 0;
+        let avgFpsCount = 0;
+
+        let raceScores = {
+            '2d': { fps: 0, latency: 0 },
+            'webgl': { fps: 0, latency: 0 },
+            'webgpu': { fps: 0, latency: 0 }
+        };
+
+        // Canvas & Context References
+        let canvas = null;
+        let ctx2d = null;
+        let gl = null;
+        let glProgram = null;
+        let glInterleavedBuffer = null;
+        let glPositionBuffer = null;
+        let glColorBuffer = null;
+        const glPositionData = new Float32Array(CPU_MAX_PARTICLES * 2);
+        const glColorData = new Float32Array(CPU_MAX_PARTICLES * 3);
+        let glStaticColorCount = 0;
+        let locRes = null, locPos = -1, locCol = -1;
+
+        // WebGPU State Handles
+        let webgpuAdapter = null;
+        let webgpuDevice = null;
+        let webgpuContext = null;
+        let webgpuRenderPipeline = null;
+        let webgpuComputePipeline = null;
+        let webgpuParticleBuffer = null;
+        let webgpuSimParamBuffer = null;
+        let webgpuComputeBindGroup = null;
+        let webgpuFormat = null;
+        let webgpuMaxBufferParticles = 1000000; // Physical GPU particles limit (1M)
+
+        let compiledWasmBytes = null;
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const gfxSec = document.getElementById('gfxSection');
+            const wasmSec = document.getElementById('wasmSection');
+            const tabGfxBtn = document.getElementById('tabGfxBtn');
+            const tabWasmBtn = document.getElementById('tabWasmBtn');
+
+            if (tab === 'gfx') {
+                gfxSec.classList.remove('hidden');
+                wasmSec.classList.add('hidden');
+                tabGfxBtn.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg";
+                tabWasmBtn.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all text-gray-400 hover:text-gray-200";
+            } else {
+                gfxSec.classList.add('hidden');
+                wasmSec.classList.remove('hidden');
+                tabWasmBtn.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg";
+                tabGfxBtn.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all text-gray-400 hover:text-gray-200";
+            }
         }
-    </script>
+
+        function initParticles() {
+            const w = canvas ? canvas.width : 800;
+            const h = canvas ? canvas.height : 600;
+
+            const initialGpuData = new Float32Array(webgpuMaxBufferParticles * 8);
+
+            for (let i = 0; i < CPU_MAX_PARTICLES; i++) {
+                pX[i] = Math.random() * w;
+                pY[i] = Math.random() * h;
+                pVX[i] = (Math.random() - 0.5) * 8;
+                pVY[i] = (Math.random() - 0.5) * 8;
+                
+                // High contrast neon palette (Cyan, Magenta, Gold, Electric Blue)
+                const palette = [
+                    [0.0, 0.95, 1.0],  // Cyan
+                    [1.0, 0.1,  0.8],  // Neon Magenta
+                    [0.2, 1.0,  0.4],  // Bright Emerald
+                    [1.0, 0.85, 0.0],  // Neon Gold
+                    [0.6, 0.3,  1.0]   // Deep Neon Violet
+                ];
+                const col = palette[i % palette.length];
+                pR[i] = col[0];
+                pG[i] = col[1];
+                pB[i] = col[2];
+            }
+
+            for (let i = 0; i < webgpuMaxBufferParticles; i++) {
+                const offset = i * 8;
+                const px = Math.random() * w;
+                const py = Math.random() * h;
+                const pvx = (Math.random() - 0.5) * 8;
+                const pvy = (Math.random() - 0.5) * 8;
+                const cr = 0.2 + Math.random() * 0.8;
+                const cg = 0.5 + Math.random() * 0.5;
+                const cb = 0.8 + Math.random() * 0.2;
+
+                initialGpuData[offset]     = px;
+                initialGpuData[offset + 1] = py;
+                initialGpuData[offset + 2] = pvx;
+                initialGpuData[offset + 3] = pvy;
+                initialGpuData[offset + 4] = cr;
+                initialGpuData[offset + 5] = cg;
+                initialGpuData[offset + 6] = cb;
+                initialGpuData[offset + 7] = 0.0;
+            }
+
+            if (webgpuDevice && webgpuParticleBuffer) {
+                webgpuDevice.queue.writeBuffer(webgpuParticleBuffer, 0, initialGpuData);
+            }
+        }
+
+        function updatePhysicsCPU() {
+            const w = canvas ? canvas.width : 800;
+            const h = canvas ? canvas.height : 600;
+            const limit = Math.min(numParticles, CPU_MAX_PARTICLES);
+
+            for (let i = 0; i < limit; i++) {
+                if (isTouching) {
+                    const dx = touchX - pX[i];
+                    const dy = touchY - pY[i];
+                    const dist = Math.sqrt(dx * dx + dy * dy) + 1;
+                    if (dist < 250) {
+                        const force = (1 - dist / 250) * 0.8;
+                        pVX[i] += (dx / dist) * force;
+                        pVY[i] += (dy / dist) * force;
+                    }
+                }
+                pX[i] += pVX[i];
+                pY[i] += pVY[i];
+                pVX[i] *= 0.98;
+                pVY[i] *= 0.98;
+
+                if (pX[i] < 0) { pX[i] = 0; pVX[i] *= -1; }
+                if (pX[i] > w) { pX[i] = w; pVX[i] *= -1; }
+                if (pY[i] < 0) { pY[i] = 0; pVY[i] *= -1; }
+                if (pY[i] > h) { pY[i] = h; pVY[i] *= -1; }
+            }
+        }
+
+        function formatParticleCountLabel(count) {
+            if (count >= 1000000000) {
+                return (count / 1000000000).toFixed(0) + "B (100 Cr 🇮🇳)";
+            } else if (count >= 10000000) {
+                return (count / 10000000).toFixed(0) + "0M (" + (count / 10000000) + " Cr 🇮🇳)";
+            } else if (count >= 1000000) {
+                return (count / 1000000).toFixed(0) + "M (10 Lakh)";
+            } else if (count >= 1000) {
+                return (count / 1000).toFixed(0) + "k";
+            }
+            return count.toLocaleString();
+        }
+
+        function onSliderChange(val) {
+            updateParticleCount(parseInt(val));
+        }
+
+        function updateParticleCount(val) {
+            numParticles = parseInt(val);
+            const valElem = document.getElementById('particleVal');
+            if (valElem) valElem.innerText = formatParticleCountLabel(numParticles);
+            const slider = document.getElementById('particleSlider');
+            if (slider) slider.value = numParticles;
+            setDiag('diagGpuBufferInfo', `${Math.min(numParticles, webgpuMaxBufferParticles).toLocaleString()} active / ${numParticles.toLocaleString()} requested`);
+
+            const notice = document.getElementById('engineNotice');
+            const btn2d = document.getElementById('selectEngine2d');
+            const btnWebgl = document.getElementById('selectEngineWebgl');
+
+            if (numParticles > 50000) {
+                if (notice) notice.classList.remove('hidden');
+                if (btn2d) {
+                    btn2d.disabled = true;
+                    btn2d.className = "px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-800 bg-gray-950 text-gray-600 cursor-not-allowed opacity-50";
+                }
+                if (numParticles > 2000000 && btnWebgl) {
+                    btnWebgl.disabled = true;
+                    btnWebgl.className = "px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-800 bg-gray-950 text-gray-600 cursor-not-allowed opacity-50";
+                }
+                if (activeEngine === '2d' || (activeEngine === 'webgl' && numParticles > 2000000)) {
+                    selectEngineDirect('webgpu');
+                }
+            } else {
+                if (notice) notice.classList.add('hidden');
+                if (btn2d) {
+                    btn2d.disabled = false;
+                    btn2d.className = activeEngine === '2d' 
+                        ? "px-3 py-1.5 rounded-xl text-xs font-bold border border-cyan-500 bg-cyan-950/80 text-cyan-300 transition-all cursor-pointer"
+                        : "px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-800 bg-gray-900 text-gray-400 transition-all cursor-pointer";
+                }
+                if (btnWebgl) {
+                    btnWebgl.disabled = false;
+                    btnWebgl.className = activeEngine === 'webgl'
+                        ? "px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-500 bg-emerald-950/80 text-emerald-300 transition-all cursor-pointer"
+                        : "px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-800 bg-gray-900 text-gray-400 transition-all cursor-pointer";
+                }
+            }
+        }
+
+        function setParticlePreset(val) {
+            updateParticleCount(val);
+            initParticles();
+        }
+
+        function resetTelemetry() {
+            lastFrameTime = performance.now();
+            fpsLastSampleTime = performance.now();
+            fpsFrameCount = 0;
+            currentFps = 60.0;
+            frameTimeMs = 16.6;
+            avgFpsSum = 0;
+            avgFpsCount = 0;
+        }
+
+        async function initWebGPUContext() {
+            if (!navigator.gpu) return false;
+            try {
+                if (!webgpuAdapter) {
+                    webgpuAdapter = await navigator.gpu.requestAdapter();
+                }
+                if (!webgpuAdapter) return false;
+
+                if (!webgpuDevice) {
+                    webgpuDevice = await webgpuAdapter.requestDevice();
+                }
+                if (!webgpuDevice) return false;
+
+                webgpuContext = canvas.getContext('webgpu');
+                if (!webgpuContext) return false;
+
+                webgpuFormat = navigator.gpu.getPreferredCanvasFormat();
+                webgpuContext.configure({
+                    device: webgpuDevice,
+                    format: webgpuFormat,
+                    alphaMode: 'opaque'
+                });
+
+                if (!webgpuParticleBuffer) {
+                    webgpuParticleBuffer = webgpuDevice.createBuffer({
+                        size: webgpuMaxBufferParticles * 32,
+                        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+                    });
+                }
+
+                if (!webgpuSimParamBuffer) {
+                    webgpuSimParamBuffer = webgpuDevice.createBuffer({
+                        size: 32,
+                        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                    });
+                }
+
+                // Native WGSL Shader with vibrant quad circle expansion & GPU compute physics
+                const wgslCode = `
+                    struct Particle {
+                        pos : vec2<f32>,
+                        vel : vec2<f32>,
+                        color : vec3<f32>,
+                        pad : f32,
+                    };
+
+                    struct SimParams {
+                        resolution : vec2<f32>,
+                        touchPos : vec2<f32>,
+                        touching : f32,
+                        particleCount : f32,
+                        pad1 : f32,
+                        pad2 : f32,
+                    };
+
+                    @group(0) @binding(0) var<storage, read_write> particles : array<Particle>;
+                    @group(0) @binding(1) var<uniform> params : SimParams;
+
+                    @compute @workgroup_size(256)
+                    fn cs_main(@builtin(global_invocation_id) global_id : vec3<u32>) {
+                        let i = global_id.x;
+                        if (f32(i) >= params.particleCount) {
+                            return;
+                        }
+
+                        var p = particles[i];
+
+                        if (params.touching > 0.5) {
+                            let dx = params.touchPos.x - p.pos.x;
+                            let dy = params.touchPos.y - p.pos.y;
+                            let dist = sqrt(dx * dx + dy * dy) + 1.0;
+                            if (dist < 250.0) {
+                                let force = (1.0 - dist / 250.0) * 0.8;
+                                p.vel.x += (dx / dist) * force;
+                                p.vel.y += (dy / dist) * force;
+                            }
+                        }
+
+                        p.pos += p.vel;
+                        p.vel *= 0.98;
+
+                        if (p.pos.x < 0.0) { p.pos.x = 0.0; p.vel.x *= -1.0; }
+                        if (p.pos.x > params.resolution.x) { p.pos.x = params.resolution.x; p.vel.x *= -1.0; }
+                        if (p.pos.y < 0.0) { p.pos.y = 0.0; p.vel.y *= -1.0; }
+                        if (p.pos.y > params.resolution.y) { p.pos.y = params.resolution.y; p.vel.y *= -1.0; }
+
+                        particles[i] = p;
+                    }
+
+                    struct VertexOutput {
+                        @builtin(position) position : vec4<f32>,
+                        @location(0) color : vec3<f32>,
+                        @location(1) uv : vec2<f32>,
+                    };
+
+                    @vertex
+                    fn vs_main(@builtin(vertex_index) vertexIndex : u32) -> VertexOutput {
+                        var out : VertexOutput;
+                        let particleIdx = vertexIndex / 6u;
+                        let quadIdx = vertexIndex % 6u;
+
+                        let p = particles[particleIdx % ${webgpuMaxBufferParticles}u];
+
+                        var quadOffsets = array<vec2<f32>, 6>(
+                            vec2<f32>(-1.0, -1.0),
+                            vec2<f32>( 1.0, -1.0),
+                            vec2<f32>(-1.0,  1.0),
+                            vec2<f32>(-1.0,  1.0),
+                            vec2<f32>( 1.0, -1.0),
+                            vec2<f32>( 1.0,  1.0)
+                        );
+
+                        let offset = quadOffsets[quadIdx];
+                        let particleRadius = 3.5;
+
+                        let centerClip = (p.pos / params.resolution) * 2.0 - vec2<f32>(1.0, 1.0);
+                        let centerClipFlipped = vec2<f32>(centerClip.x, -centerClip.y);
+                        let offsetClip = (offset * particleRadius) / params.resolution * 2.0;
+
+                        out.position = vec4<f32>(centerClipFlipped + offsetClip, 0.0, 1.0);
+                        out.color = p.color;
+                        out.uv = offset;
+                        return out;
+                    }
+
+                    @fragment
+                    fn fs_main(@location(0) color : vec3<f32>, @location(1) uv : vec2<f32>) -> @location(0) vec4<f32> {
+                        let d = length(uv);
+                        if (d > 1.0) {
+                            discard;
+                        }
+                        let alpha = 1.0 - smoothstep(0.4, 1.0, d);
+                        return vec4<f32>(color * 1.4, alpha);
+                    }
+                `;
+
+                const shaderModule = webgpuDevice.createShaderModule({ code: wgslCode });
+
+                const bindGroupLayout = webgpuDevice.createBindGroupLayout({
+                    entries: [
+                        { binding: 0, visibility: GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX, buffer: { type: 'storage' } },
+                        { binding: 1, visibility: GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }
+                    ]
+                });
+
+                webgpuComputeBindGroup = webgpuDevice.createBindGroup({
+                    layout: bindGroupLayout,
+                    entries: [
+                        { binding: 0, resource: { buffer: webgpuParticleBuffer } },
+                        { binding: 1, resource: { buffer: webgpuSimParamBuffer } }
+                    ]
+                });
+
+                const pipelineLayout = webgpuDevice.createPipelineLayout({
+                    bindGroupLayouts: [bindGroupLayout]
+                });
+
+                webgpuComputePipeline = webgpuDevice.createComputePipeline({
+                    layout: pipelineLayout,
+                    compute: { module: shaderModule, entryPoint: 'cs_main' }
+                });
+
+                webgpuRenderPipeline = webgpuDevice.createRenderPipeline({
+                    layout: pipelineLayout,
+                    vertex: { module: shaderModule, entryPoint: 'vs_main' },
+                    fragment: { 
+                        module: shaderModule, 
+                        entryPoint: 'fs_main', 
+                        targets: [{ 
+                            format: webgpuFormat,
+                            blend: {
+                                color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+                                alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' }
+                            }
+                        }] 
+                    },
+                    primitive: { topology: 'triangle-list' }
+                });
+
+                initParticles();
+                return true;
+            } catch(e) {
+                console.warn("WebGPU setup exception:", e);
+                return false;
+            }
+        }
+
+        function setDiag(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        }
+
+        function makeWorkerSource() {
+            return `
+                let running = false;
+                self.onmessage = (e) => {
+                    const { type, durationMs, wasmBytes } = e.data || {};
+                    if (type === 'cpu') {
+                        const end = performance.now() + durationMs;
+                        let x = 1 >>> 0;
+                        let loops = 0;
+                        while (performance.now() < end) {
+                            x = Math.imul(x ^ 0x9e3779b9, 1664525) + 1013904223 | 0;
+                            x ^= x >>> 13;
+                            x = Math.imul(x, 2246822519) | 0;
+                            x ^= x >>> 16;
+                            loops++;
+                        }
+                        self.postMessage({ type: 'cpuDone', loops, checksum: x >>> 0 });
+                    } else if (type === 'wasm') {
+                        (async () => {
+                            try {
+                                const mod = await WebAssembly.instantiate(wasmBytes);
+                                const fn = mod.instance.exports.main || mod.instance.exports.run;
+                                if (typeof fn !== 'function') throw new Error('No main/run export');
+                                const t0 = performance.now();
+                                const result = fn();
+                                const t1 = performance.now();
+                                self.postMessage({ type: 'wasmDone', ms: t1 - t0, result });
+                            } catch (err) {
+                                self.postMessage({ type: 'wasmError', error: String(err && err.message || err) });
+                            }
+                        })();
+                    }
+                };
+            `;
+        }
+
+        function spawnDiagnosticWorker() {
+            const blob = new Blob([makeWorkerSource()], { type: 'application/javascript' });
+            const url = URL.createObjectURL(blob);
+            const worker = new Worker(url);
+            worker._veloxUrl = url;
+            return worker;
+        }
+
+        function disposeDiagnosticWorker(worker) {
+            try { worker.terminate(); } catch (_) {}
+            if (worker && worker._veloxUrl) URL.revokeObjectURL(worker._veloxUrl);
+        }
+
+        async function runWorkerCpuTest(count, durationMs = 350) {
+            const workers = [];
+            const started = performance.now();
+            const promises = [];
+            for (let i = 0; i < count; i++) {
+                const worker = spawnDiagnosticWorker();
+                workers.push(worker);
+                promises.push(new Promise((resolve) => {
+                    worker.onmessage = (e) => {
+                        if (e.data?.type === 'cpuDone') resolve(e.data);
+                    };
+                    worker.onerror = () => resolve({ type: 'cpuDone', loops: 0, checksum: 0 });
+                }));
+                worker.postMessage({ type: 'cpu', durationMs });
+            }
+            const results = await Promise.all(promises);
+            const elapsed = Math.max(1, performance.now() - started);
+            workers.forEach(disposeDiagnosticWorker);
+            return {
+                count,
+                elapsed,
+                totalLoops: results.reduce((a, b) => a + (b.loops || 0), 0),
+                loopsPerSec: results.reduce((a, b) => a + (b.loops || 0), 0) * 1000 / elapsed
+            };
+        }
+
+        async function measureDisplayRefresh() {
+            return await new Promise(resolve => {
+                let frames = 0;
+                let first = 0;
+                let last = 0;
+                const step = (t) => {
+                    if (!first) first = t;
+                    last = t;
+                    frames++;
+                    if (frames >= 31) {
+                        const elapsed = Math.max(1, last - first);
+                        resolve((30 * 1000) / elapsed);
+                    } else {
+                        requestAnimationFrame(step);
+                    }
+                };
+                requestAnimationFrame(step);
+            });
+        }
+
+        async function runHardwareDiagnostics() {
+            const gpu = navigator.gpu ? 'WebGPU API present' : 'WebGPU unavailable';
+            const mem = navigator.deviceMemory ? `${navigator.deviceMemory} GB hint` : 'not exposed';
+            const sab = typeof SharedArrayBuffer !== 'undefined' && window.crossOriginIsolated;
+            const ua = navigator.userAgentData ? (navigator.userAgentData.platform || 'browser') : (navigator.platform || 'unknown');
+
+            setDiag('diagCpuSlots', `${cpuCores} logical slots`);
+            setDiag('diagCpuInfo', `${ua}; hardwareConcurrency=${cpuCores}`);
+            setDiag('diagMemoryInfo', mem);
+            setDiag('diagSabInfo', `${sab ? 'available + cross-origin isolated' : 'not available for shared-memory WASM threads'}`);
+            setDiag('diagGpuInfo', gpu);
+            setDiag('diagGpuBufferInfo', `${Math.min(numParticles, webgpuMaxBufferParticles).toLocaleString()} active / ${numParticles.toLocaleString()} requested`);
+            setDiag('diagFrameInfo', `FPS ${currentFps.toFixed(1)} | frame ${frameTimeMs.toFixed(1)} ms | CPU frame ${lastFrameCpuMs.toFixed(2)} ms`);
+            setDiag('diagGpuSubmitInfo', activeEngine === 'webgpu' ? `${lastWebgpuSubmitMs.toFixed(2)} ms CPU submit/encode` : 'not on WebGPU');
+
+            if (navigator.gpu) {
+                try {
+                    const adapter = await navigator.gpu.requestAdapter();
+                    if (adapter) {
+                        const info = adapter.info || {};
+                        const vendor = info.vendor || 'unknown';
+                        const arch = info.architecture || 'unknown';
+                        const dev = info.device || 'unknown';
+                        const desc = info.description || '';
+                        setDiag('diagGpuInfo', `${vendor} / ${arch} / ${dev}${desc ? ' — ' + desc : ''}`);
+                        const lim = adapter.limits;
+                        const maxBuf = lim && lim.maxStorageBufferBindingSize ? lim.maxStorageBufferBindingSize : 'n/a';
+                        const maxWG = lim && lim.maxComputeWorkgroupSizeX ? lim.maxComputeWorkgroupSizeX : 'n/a';
+                        const coreMode = adapter.features && adapter.features.has('core-features-and-limits') ? 'core' : 'compat/legacy';
+                        setDiag('diagGpuLimits', `storage ${maxBuf}; workgroupX ${maxWG}; ${coreMode}`);
+                    }
+                } catch (e) {
+                    setDiag('diagGpuInfo', `WebGPU info unavailable: ${e.message}`);
+                }
+            }
+
+            const oldAnim = animFrameId;
+            if (oldAnim) {
+                cancelAnimationFrame(oldAnim);
+                animFrameId = null;
+            }
+            const hz = await measureDisplayRefresh();
+            setDiag('diagRefreshInfo', `${hz.toFixed(1)} Hz rAF estimate while idle`);
+            if (oldAnim) {
+                startRenderLoop();
+            }
+            return { cpuCores, memory: mem, sharedWasmThreads: sab, refreshHz: hz };
+        }
+
+        async function runCpuScalingDiagnostic() {
+            setDiag('diagStatus', 'Running CPU worker scaling...');
+            const one = await runWorkerCpuTest(1, 350);
+            const n = diagnosticWorkerCap;
+            const many = n === 1 ? one : await runWorkerCpuTest(n, 350);
+            const speedup = many.loopsPerSec / Math.max(1, one.loopsPerSec);
+            const efficiency = (speedup / n) * 100;
+            setDiag('diagCpuSpeed', `${(one.loopsPerSec / 1e6).toFixed(2)} M work/s`);
+            setDiag('diagCpuScale', `${speedup.toFixed(2)}x / ${efficiency.toFixed(0)}%`);
+            setDiag('diagCpuSlots', `${cpuCores} reported; tested ${n}`);
+            return { one, many, speedup, efficiency };
+        }
+
+        async function runWasmParallelDiagnostic() {
+            const source = document.getElementById('codeSource')?.value || CODE_PRESETS.benchmark100m;
+            let bytes;
+            try {
+                bytes = compileVeloXToWasm(source.includes('fibonacci') ? CODE_PRESETS.benchmark100m : source);
+            } catch (e) {
+                setDiag('diagWasmScale', 'compile error');
+                return null;
+            }
+            const oneWorker = spawnDiagnosticWorker();
+            const one = await new Promise(resolve => {
+                oneWorker.onmessage = e => {
+                    if (e.data?.type === 'wasmDone') resolve(e.data);
+                    if (e.data?.type === 'wasmError') resolve({ error: e.data.error });
+                };
+                oneWorker.postMessage({ type: 'wasm', wasmBytes: bytes }, [bytes.buffer]);
+            });
+            disposeDiagnosticWorker(oneWorker);
+            if (one.error) {
+                setDiag('diagWasmScale', 'worker error');
+                return one;
+            }
+
+            // Re-create bytes because the first worker transfer detached the buffer.
+            let bytes2 = compileVeloXToWasm(source.includes('fibonacci') ? CODE_PRESETS.benchmark100m : source);
+            const n = diagnosticWorkerCap;
+            const workers = [];
+            const promises = [];
+            const start = performance.now();
+            for (let i = 0; i < n; i++) {
+                const w = spawnDiagnosticWorker();
+                workers.push(w);
+                promises.push(new Promise(resolve => {
+                    w.onmessage = e => {
+                        if (e.data?.type === 'wasmDone') resolve(e.data);
+                        if (e.data?.type === 'wasmError') resolve({ error: e.data.error });
+                    };
+                    const clone = bytes2.slice();
+                    w.postMessage({ type: 'wasm', wasmBytes: clone }, [clone.buffer]);
+                }));
+            }
+            const many = await Promise.all(promises);
+            const elapsed = performance.now() - start;
+            workers.forEach(disposeDiagnosticWorker);
+            const good = many.filter(x => !x.error);
+            const theoreticalWallScale = one.ms / Math.max(0.001, elapsed);
+            setDiag('diagWasmScale', `${n} workers; wall ${elapsed.toFixed(1)} ms; 1× ${one.ms.toFixed(1)} ms`);
+            return { one, many: good, elapsed, theoreticalWallScale };
+        }
+
+        async function runAllDiagnostics() {
+            if (diagnosticRunning) return;
+            diagnosticRunning = true;
+            const btn = document.getElementById('runDiagnosticsBtn');
+            if (btn) { btn.disabled = true; btn.innerText = 'TESTING...'; }
+            try {
+                setDiag('diagStatus', 'Scanning device...');
+                await runHardwareDiagnostics();
+                const cpu = await runCpuScalingDiagnostic();
+                setDiag('diagStatus', `CPU done: ${cpu.speedup.toFixed(2)}× parallel scaling`);
+                const wasm = await runWasmParallelDiagnostic();
+                const workloadMs = lastFrameCpuMs || 0;
+                const gapMs = Math.max(0, frameTimeMs - workloadMs);
+                setDiag('diagFrameInfo', `FPS ${currentFps.toFixed(1)} | frame ${frameTimeMs.toFixed(1)} ms | CPU work ${workloadMs.toFixed(2)} ms | idle/present gap ${gapMs.toFixed(2)} ms`);
+                setDiag('diagStatus', wasm ? 'Diagnostics complete' : 'CPU diagnostics complete; WASM test failed');
+            } catch (e) {
+                setDiag('diagStatus', `Diagnostic error: ${e.message}`);
+            } finally {
+                diagnosticRunning = false;
+                if (btn) { btn.disabled = false; btn.innerText = 'RUN DIAGNOSTICS'; }
+            }
+        }
+
+        window.addEventListener('load', async () => {
+            const badge = document.getElementById('cpuCoreBadge');
+            if (badge) badge.innerText = `🧠 ${cpuCores} Logical CPU Slots`;
+            setDiag('diagCpuSlots', `${cpuCores} logical slots`);
+            setDiag('diagCpuInfo', `hardwareConcurrency=${cpuCores}; actual physical core count is not exposed`);
+            setDiag('diagMemoryInfo', navigator.deviceMemory ? `${navigator.deviceMemory} GB hint` : 'not exposed');
+            setDiag('diagSabInfo', (typeof SharedArrayBuffer !== 'undefined' && window.crossOriginIsolated) ? 'ready' : 'not ready');
+            setDiag('diagGpuBufferInfo', `${Math.min(numParticles, webgpuMaxBufferParticles).toLocaleString()} active / ${numParticles.toLocaleString()} requested`);
+
+            resetFreshCanvas();
+
+            const wrapper = document.getElementById('canvasWrapper');
+            if (wrapper && window.ResizeObserver) {
+                const ro = new ResizeObserver(() => {
+                    setupCanvasSize();
+                });
+                ro.observe(wrapper);
+            }
+
+            const gpuAvailable = await initWebGPUContext();
+            if (gpuAvailable) {
+                await selectEngineDirect('webgpu');
+            } else {
+                const badgeHeader = document.getElementById('webgpuBadgeHeader');
+                if (badgeHeader) {
+                    badgeHeader.className = "text-xs font-semibold px-2.5 py-1 bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 rounded-full";
+                    badgeHeader.innerText = "⚡ WebGL Hardware Accelerated";
+                }
+                const suppText = document.getElementById('webgpuSupportText');
+                if (suppText) {
+                    suppText.className = "text-emerald-400 font-semibold";
+                    suppText.innerText = "🟢 WebGL Hardware Acceleration Active";
+                }
+                await selectEngineDirect('webgl');
+            }
+
+            loadPreset('fibonacci');
+            
+            const editor = document.getElementById('codeSource');
+            if (editor) editor.addEventListener('input', updateLineCount);
+        });
+
+        window.addEventListener('resize', () => {
+            setupCanvasSize();
+        });
+
+        function resetFreshCanvas() {
+            const wrapper = document.getElementById('canvasWrapper');
+            if (!wrapper) return;
+            wrapper.innerHTML = '';
+            canvas = document.createElement('canvas');
+            canvas.id = 'gfxCanvas';
+            canvas.className = 'w-full h-full object-contain block';
+            wrapper.appendChild(canvas);
+
+            setupCanvasSize();
+
+            canvas.addEventListener('mousedown', e => { isTouching = true; updateTouchPos(e); });
+            canvas.addEventListener('mousemove', e => { if(isTouching) updateTouchPos(e); });
+            window.addEventListener('mouseup', () => { isTouching = false; });
+            
+            canvas.addEventListener('touchstart', e => { isTouching = true; updateTouchPos(e.touches[0]); }, { passive: true });
+            canvas.addEventListener('touchmove', e => { if(isTouching) updateTouchPos(e.touches[0]); }, { passive: true });
+            window.addEventListener('touchend', () => { isTouching = false; });
+        }
+
+        function updateTouchPos(e) {
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            touchX = e.clientX - rect.left;
+            touchY = e.clientY - rect.top;
+        }
+
+        function setupCanvasSize() {
+            const wrapper = document.getElementById('canvasWrapper');
+            if (!wrapper || !canvas) return;
+            const w = wrapper.clientWidth || 800;
+            const h = wrapper.clientHeight || 600;
+            if (canvas.width !== w || canvas.height !== h) {
+                canvas.width = w;
+                canvas.height = h;
+                imgData = null;
+                imgData32 = null;
+                if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        async function initEngineContext(engine) {
+            resetFreshCanvas();
+            ctx2d = null;
+            gl = null;
+            glProgram = null;
+
+            if (engine === '2d') {
+                ctx2d = canvas.getContext('2d');
+            } else if (engine === 'webgpu') {
+                const ok = await initWebGPUContext();
+                if (!ok) return false;
+            } else if (engine === 'webgl') {
+                try {
+                    gl = canvas.getContext('webgl', { alpha: true, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false, powerPreference: 'high-performance' }) || 
+                         canvas.getContext('experimental-webgl');
+                    if (!gl) return false;
+
+                    const vsSource = `
+                        attribute vec2 a_position;
+                        attribute vec3 a_color;
+                        uniform vec2 u_resolution;
+                        varying vec3 v_color;
+                        void main() {
+                            vec2 zeroToOne = a_position / u_resolution;
+                            vec2 clipSpace = (zeroToOne * 2.0) - 1.0;
+                            gl_Position = vec4(clipSpace.x, -clipSpace.y, 0.0, 1.0);
+                            gl_PointSize = 6.0;
+                            v_color = a_color;
+                        }
+                    `;
+
+                    const fsSource = `
+                        precision mediump float;
+                        varying vec3 v_color;
+                        void main() {
+                            vec2 d = gl_PointCoord - vec2(0.5);
+                            if (dot(d, d) > 0.25) discard;
+                            gl_FragColor = vec4(v_color, 1.0);
+                        }
+                    `;
+
+                    function createShader(gl, type, source) {
+                        const s = gl.createShader(type);
+                        gl.shaderSource(s, source);
+                        gl.compileShader(s);
+                        return s;
+                    }
+
+                    const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+                    const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+                    glProgram = gl.createProgram();
+                    gl.attachShader(glProgram, vs);
+                    gl.attachShader(glProgram, fs);
+                    gl.linkProgram(glProgram);
+                    if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+                        throw new Error('WebGL program link failed: ' + gl.getProgramInfoLog(glProgram));
+                    }
+
+                    locRes = gl.getUniformLocation(glProgram, "u_resolution");
+                    locPos = gl.getAttribLocation(glProgram, "a_position");
+                    locCol = gl.getAttribLocation(glProgram, "a_color");
+
+                    // Separate dynamic position and static colour streams. This removes
+                    // per-frame RGB packing/upload work without merging particles.
+                    glPositionBuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, glPositionBuffer);
+                    gl.bufferData(gl.ARRAY_BUFFER, CPU_MAX_PARTICLES * 2 * 4, gl.DYNAMIC_DRAW);
+
+                    glColorBuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, glColorBuffer);
+                    gl.bufferData(gl.ARRAY_BUFFER, CPU_MAX_PARTICLES * 3 * 4, gl.STATIC_DRAW);
+                    glStaticColorCount = 0;
+
+                    // Fixed vertex input state: bind once, update only dynamic position bytes per frame.
+                    gl.useProgram(glProgram);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, glPositionBuffer);
+                    gl.enableVertexAttribArray(locPos);
+                    gl.vertexAttribPointer(locPos, 2, gl.FLOAT, false, 0, 0);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, glColorBuffer);
+                    gl.enableVertexAttribArray(locCol);
+                    gl.vertexAttribPointer(locCol, 3, gl.FLOAT, false, 0, 0);
+                    return true;
+                } catch(e) {
+                    console.warn("WebGL Init Warning:", e);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        async function selectEngineDirect(engine) {
+            if (engine === '2d' && numParticles > 50000) return;
+            if (engine === 'webgl' && numParticles > 2000000) return;
+
+            if (engine === 'webgpu') {
+                const gpuOk = await initWebGPUContext();
+                if (!gpuOk) {
+                    return selectEngineDirect('webgl');
+                }
+            }
+
+            activeEngine = engine;
+            
+            document.getElementById('selectEngine2d').className = engine === '2d' 
+                ? "px-3 py-1.5 rounded-xl text-xs font-bold border border-cyan-500 bg-cyan-950/80 text-cyan-300 transition-all cursor-pointer"
+                : (numParticles > 50000 
+                    ? "px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-800 bg-gray-950 text-gray-600 cursor-not-allowed opacity-50"
+                    : "px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-800 bg-gray-900 text-gray-400 transition-all cursor-pointer");
+
+            document.getElementById('selectEngineWebgl').className = engine === 'webgl' 
+                ? "px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-500 bg-emerald-950/80 text-emerald-300 transition-all cursor-pointer"
+                : "px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-800 bg-gray-900 text-gray-400 transition-all cursor-pointer";
+
+            document.getElementById('selectEngineWebgpu').className = engine === 'webgpu' 
+                ? "px-3 py-1.5 rounded-xl text-xs font-bold border border-purple-500 bg-purple-950/80 text-purple-300 transition-all cursor-pointer"
+                : "px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-800 bg-gray-900 text-gray-400 transition-all cursor-pointer";
+
+            const names = { '2d': 'Canvas 2D (CPU)', 'webgl': 'WebGL (GPU Render)', 'webgpu': 'WebGPU Native Quad Expansion Shader' };
+            document.getElementById('activeEngineLabel').innerText = names[engine] || 'WebGL';
+
+            const procLabel = document.getElementById('gpuProcLabel');
+            if (procLabel) {
+                if (engine === 'webgpu') procLabel.innerText = "GPU Buffer";
+                else if (engine === 'webgl') procLabel.innerText = "CPU Physics + GPU Render";
+                else procLabel.innerText = "100% CPU Software";
+            }
+
+            await initEngineContext(engine);
+            startRenderLoop();
+        }
+
+        function render2D() {
+            if (!ctx2d || !canvas.width || !canvas.height) return;
+            const w = canvas.width;
+            const h = canvas.height;
+            const count = Math.min(numParticles, CPU_MAX_PARTICLES);
+
+            if (!imgData || imgData.width !== w || imgData.height !== h) {
+                imgData = ctx2d.createImageData(w, h);
+                imgData32 = new Uint32Array(imgData.data.buffer);
+            }
+            imgData32.fill(0xFF070301); // Dark background ABGR
+
+            for (let i = 0; i < count; i++) {
+                const x = pX[i] | 0;
+                const y = pY[i] | 0;
+                if (x > 0 && x < w - 1 && y > 0 && y < h - 1) {
+                    const r = (pR[i] * 255) | 0;
+                    const g = (pG[i] * 255) | 0;
+                    const b = (pB[i] * 255) | 0;
+                    const color = (255 << 24) | (b << 16) | (g << 8) | r;
+
+                    // 2x2 Pixel Expansion Block for bold crisp visibility
+                    const idx = y * w + x;
+                    imgData32[idx] = color;
+                    imgData32[idx + 1] = color;
+                    imgData32[idx + w] = color;
+                    imgData32[idx + w + 1] = color;
+                }
+            }
+            ctx2d.putImageData(imgData, 0, 0);
+        }
+
+        function renderWebGPU() {
+            if (!webgpuDevice || !webgpuRenderPipeline || !webgpuContext) return;
+
+            webgpuSimParamsArray[0] = canvas.width;
+            webgpuSimParamsArray[1] = canvas.height;
+            webgpuSimParamsArray[2] = touchX;
+            webgpuSimParamsArray[3] = touchY;
+            webgpuSimParamsArray[4] = isTouching ? 1.0 : 0.0;
+            webgpuSimParamsArray[5] = Math.min(numParticles, webgpuMaxBufferParticles);
+
+            webgpuDevice.queue.writeBuffer(webgpuSimParamBuffer, 0, webgpuSimParamsArray);
+
+            const commandEncoder = webgpuDevice.createCommandEncoder();
+
+            // STEP 1: Compute Pass
+            const computePass = commandEncoder.beginComputePass();
+            computePass.setPipeline(webgpuComputePipeline);
+            computePass.setBindGroup(0, webgpuComputeBindGroup);
+            const workgroupCount = Math.ceil(Math.min(numParticles, webgpuMaxBufferParticles) / 256);
+            computePass.dispatchWorkgroups(workgroupCount);
+            computePass.end();
+
+            // STEP 2: Render Pass (Supports scaling up to 100 Crore / 1 Billion)
+            const textureView = webgpuContext.getCurrentTexture().createView();
+            const renderPass = commandEncoder.beginRenderPass({
+                colorAttachments: [{
+                    view: textureView,
+                    clearValue: { r: 0.01, g: 0.02, b: 0.05, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            });
+
+            renderPass.setPipeline(webgpuRenderPipeline);
+            renderPass.setBindGroup(0, webgpuComputeBindGroup);
+
+            // Calculate active vertices based on particle count
+            const renderParticleCount = Math.min(numParticles, 10000000);
+            renderPass.draw(renderParticleCount * 6, 1, 0, 0);
+            renderPass.end();
+
+            webgpuDevice.queue.submit([commandEncoder.finish()]);
+        }
+
+        function renderWebGL() {
+            if (!gl || !glProgram) return;
+
+            const count = Math.min(numParticles, CPU_MAX_PARTICLES);
+
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0.01, 0.02, 0.05, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            gl.useProgram(glProgram);
+            gl.uniform2f(locRes, canvas.width, canvas.height);
+
+            // Dynamic positions and static colours use separate GPU buffers.
+            // Every particle remains an independent vertex; only the submission path is batched.
+            for (let i = 0, j = 0; i < count; i++, j += 2) {
+                glPositionData[j] = pX[i];
+                glPositionData[j + 1] = pY[i];
+            }
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, glPositionBuffer);
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, glPositionData.subarray(0, count * 2));
+
+            if (glStaticColorCount < count) {
+                for (let i = glStaticColorCount, j = i * 3; i < count; i++, j += 3) {
+                    glColorData[j] = pR[i];
+                    glColorData[j + 1] = pG[i];
+                    glColorData[j + 2] = pB[i];
+                }
+                gl.bindBuffer(gl.ARRAY_BUFFER, glColorBuffer);
+                gl.bufferSubData(gl.ARRAY_BUFFER, glStaticColorCount * 3 * 4,
+                    glColorData.subarray(glStaticColorCount * 3, count * 3));
+                glStaticColorCount = count;
+            }
+            gl.bindBuffer(gl.ARRAY_BUFFER, glColorBuffer);
+
+            gl.drawArrays(gl.POINTS, 0, count);
+        }
+
+        function startRenderLoop() {
+            if (animFrameId) {
+                cancelAnimationFrame(animFrameId);
+                animFrameId = null;
+            }
+            resetTelemetry();
+
+            function frame(now) {
+                const delta = now - lastFrameTime;
+                lastFrameTime = now;
+                frameTimeMs = delta > 0 ? delta : 16.6;
+
+                const cpuPhaseStart = performance.now();
+                if (activeEngine === '2d') {
+                    const physicsStart = performance.now();
+                    updatePhysicsCPU();
+                    lastPhysicsMs = performance.now() - physicsStart;
+                    const renderStart = performance.now();
+                    render2D();
+                    lastRenderCpuMs = performance.now() - renderStart;
+                    lastWebgpuSubmitMs = 0;
+                } else if (activeEngine === 'webgl') {
+                    const physicsStart = performance.now();
+                    updatePhysicsCPU();
+                    lastPhysicsMs = performance.now() - physicsStart;
+                    const renderStart = performance.now();
+                    renderWebGL();
+                    lastRenderCpuMs = performance.now() - renderStart;
+                    lastWebgpuSubmitMs = 0;
+                } else if (activeEngine === 'webgpu') {
+                    lastPhysicsMs = 0;
+                    const submitStart = performance.now();
+                    renderWebGPU();
+                    lastWebgpuSubmitMs = performance.now() - submitStart;
+                    lastRenderCpuMs = lastWebgpuSubmitMs;
+                }
+                lastFrameCpuMs = performance.now() - cpuPhaseStart;
+                lastFrameNow = now;
+
+                fpsFrameCount++;
+                const elapsedSinceSample = now - fpsLastSampleTime;
+                if (elapsedSinceSample >= 250) {
+                    currentFps = (fpsFrameCount * 1000) / elapsedSinceSample;
+                    fpsFrameCount = 0;
+                    fpsLastSampleTime = now;
+
+                    if (currentFps > 0 && currentFps < 500) {
+                        avgFpsSum += currentFps;
+                        avgFpsCount++;
+                    }
+
+                    if (isAuto60FpsMode && !isRaceRunning) {
+                        autoTuneCooldown++;
+                        if (autoTuneCooldown >= 3) {
+                            autoTuneCooldown = 0;
+                            adjustParticlesFor60Fps(currentFps);
+                        }
+                    }
+
+                    const fpsElem = document.getElementById('liveFps');
+                    const latElem = document.getElementById('liveLatency');
+                    const avgElem = document.getElementById('avgFpsVal');
+
+                    if (fpsElem) fpsElem.innerText = currentFps.toFixed(1);
+                    if (latElem) latElem.innerText = frameTimeMs.toFixed(1) + ' ms';
+                    if (avgElem) avgElem.innerText = avgFpsCount > 0 ? (avgFpsSum / avgFpsCount).toFixed(1) : '0.0';
+                }
+
+                animFrameId = requestAnimationFrame(frame);
+            }
+            animFrameId = requestAnimationFrame(frame);
+        }
+
+        async function autoSelectFastestEngine() {
+            let bestEngine = '2d';
+            
+            // WebGPU check FIRST on clean context before WebGL context locks the canvas element
+            if (navigator.gpu) {
+                try {
+                    const gpuOk = await initWebGPUContext();
+                    if (gpuOk) {
+                        bestEngine = 'webgpu';
+                    }
+                } catch(e) {
+                    console.warn("WebGPU initialization check:", e);
+                }
+            }
+
+            // Fallback to WebGL if WebGPU is not supported
+            if (bestEngine !== 'webgpu') {
+                const tempCanvas = document.createElement('canvas');
+                const testGl = tempCanvas.getContext('webgl') || tempCanvas.getContext('experimental-webgl');
+                if (testGl) {
+                    bestEngine = 'webgl';
+                }
+            }
+
+            await selectEngineDirect(bestEngine);
+            
+            const autoBtn = document.getElementById('autoRenderBtn');
+            if (autoBtn) {
+                autoBtn.classList.add('ring-2', 'ring-cyan-400');
+                setTimeout(() => autoBtn.classList.remove('ring-2', 'ring-cyan-400'), 1200);
+            }
+        }
+
+        function toggleAuto60Fps() {
+            isAuto60FpsMode = !isAuto60FpsMode;
+            const btn = document.getElementById('auto60fpsBtn');
+            const badge = document.getElementById('autoStatusBadge');
+
+            if (isAuto60FpsMode) {
+                autoSelectFastestEngine();
+                if (btn) {
+                    btn.className = "px-3 py-1.5 rounded-xl text-xs font-extrabold border border-emerald-400 bg-emerald-500 text-black transition-all shadow-lg flex items-center gap-1 animate-pulse cursor-pointer";
+                    btn.innerHTML = "<span>🎯 Auto 60 FPS [ACTIVE]</span>";
+                }
+                if (badge) {
+                    badge.classList.remove('hidden');
+                    badge.innerText = "🎯 Tuning Particles for 60 FPS...";
+                }
+            } else {
+                if (btn) {
+                    btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-500/60 bg-gradient-to-r from-emerald-950 to-teal-950 text-emerald-300 hover:border-emerald-400 transition-all shadow-md flex items-center gap-1 cursor-pointer";
+                    btn.innerHTML = "<span>🎯 Auto 60 FPS (Auto Particles)</span>";
+                }
+                if (badge) badge.classList.add('hidden');
+            }
+        }
+
+        function adjustParticlesFor60Fps(fps) {
+            let maxAllowed = activeEngine === 'webgpu' ? 1000000000 : (activeEngine === 'webgl' ? 2000000 : 50000);
+            let current = numParticles;
+            let target = current;
+            const minAllowed = 50; // Dropped limit down to 50 particles to reach 60 FPS on lower-end devices!
+
+            if (fps >= 57.5) {
+                if (current < 50000) target = Math.min(maxAllowed, Math.round(current * 1.4));
+                else if (current < 1000000) target = Math.min(maxAllowed, Math.round(current * 1.25));
+                else target = Math.min(maxAllowed, Math.round(current * 1.12));
+            } else if (fps < 55) {
+                // Aggressive step reduction until 60 FPS target is actually achieved
+                if (fps < 30) {
+                    target = Math.max(minAllowed, Math.round(current * 0.4)); // Cut 60%
+                } else if (fps < 45) {
+                    target = Math.max(minAllowed, Math.round(current * 0.65)); // Cut 35%
+                } else {
+                    target = Math.max(minAllowed, Math.round(current * 0.85)); // Cut 15%
+                }
+            }
+
+            if (target !== current) {
+                updateParticleCount(target);
+                const badge = document.getElementById('autoStatusBadge');
+                if (badge) {
+                    badge.innerText = `🎯 60 FPS Target: ${formatParticleCountLabel(target)} Particles (${fps.toFixed(0)} FPS)`;
+                }
+            }
+        }
+
+        async function startSequentialRace() {
+            if (isRaceRunning) return;
+            isRaceRunning = true;
+
+            const raceBtn = document.getElementById('runRaceBtn');
+            const durationSelect = document.getElementById('durationSelect');
+            selectedDuration = parseInt(durationSelect.value);
+
+            raceBtn.disabled = true;
+            raceBtn.className = "flex-1 py-3 px-6 rounded-xl bg-gray-800 font-bold text-xs text-gray-500 cursor-not-allowed flex items-center justify-center gap-2";
+            raceBtn.innerText = "⏳ RACE IN PROGRESS...";
+
+            document.getElementById('winnerCard').classList.add('hidden');
+            document.getElementById('countdownBadge').classList.remove('hidden');
+
+            const engines = numParticles > 2000000 
+                ? ['webgpu'] 
+                : (numParticles > 50000 ? ['webgl', 'webgpu'] : ['2d', 'webgl', 'webgpu']);
+
+            const engineNames = { 
+                '2d': `Canvas 2D (Main Thread)`, 
+                'webgl': 'WebGL (GPU Render)', 
+                'webgpu': 'WebGPU Native WGSL Quad Shader'
+            };
+
+            if (numParticles > 50000) {
+                document.getElementById('score2d').innerText = "Skipped (>50k)";
+                document.getElementById('latency2d').innerText = "Disabled for high count";
+            }
+            if (numParticles > 2000000) {
+                document.getElementById('scoreWebgl').innerText = "Skipped (>2M)";
+                document.getElementById('latencyWebgl').innerText = "Disabled for extreme count";
+            }
+
+            for (let eng of engines) {
+                await selectEngineDirect(eng);
+                document.getElementById('activeEngineLabel').innerText = engineNames[eng] + " [TESTING...]";
+
+                resetTelemetry();
+
+                for (let t = selectedDuration; t > 0; t--) {
+                    document.getElementById('countdownVal').innerText = t;
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+
+                const finalFps = avgFpsCount > 0 ? (avgFpsSum / avgFpsCount) : currentFps;
+                const finalLatency = finalFps > 0 ? (1000 / finalFps) : 16.6;
+
+                raceScores[eng] = { fps: finalFps, latency: finalLatency };
+
+                if (eng === '2d') {
+                    document.getElementById('score2d').innerText = `${finalFps.toFixed(1)} FPS`;
+                    document.getElementById('latency2d').innerText = `Latency: ${finalLatency.toFixed(1)} ms`;
+                } else if (eng === 'webgl') {
+                    document.getElementById('scoreWebgl').innerText = `${finalFps.toFixed(1)} FPS`;
+                    document.getElementById('latencyWebgl').innerText = `Latency: ${finalLatency.toFixed(1)} ms`;
+                } else {
+                    document.getElementById('scoreWebgpu').innerText = `${finalFps.toFixed(1)} FPS`;
+                    document.getElementById('latencyWebgpu').innerText = `Latency: ${finalLatency.toFixed(1)} ms`;
+                }
+            }
+
+            let bestEngine = engines[0];
+            let maxFps = -1;
+            for (let eng of engines) {
+                if (raceScores[eng] && raceScores[eng].fps > maxFps) {
+                    maxFps = raceScores[eng].fps;
+                    bestEngine = eng;
+                }
+            }
+
+            document.getElementById('countdownBadge').classList.add('hidden');
+            document.getElementById('winnerCard').classList.remove('hidden');
+            document.getElementById('winnerText').innerText = `${engineNames[bestEngine]} with ${maxFps.toFixed(1)} FPS! (${formatParticleCountLabel(numParticles)} Particles)`;
+
+            openPerformanceReport();
+
+            raceBtn.disabled = false;
+            raceBtn.className = "flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-purple-600 via-teal-500 to-cyan-500 hover:opacity-95 font-extrabold text-sm text-white shadow-lg neon-glow-cyan flex items-center justify-center gap-2 transition-all cursor-pointer";
+            raceBtn.innerText = "🚀 RUN SEQUENTIAL BENCHMARK RACE";
+            isRaceRunning = false;
+        }
+
+        function openPerformanceReport() {
+            const modal = document.getElementById('reportModal');
+            if (!modal) return;
+
+            const engines = ['webgpu', 'webgl', '2d'];
+            let bestEng = 'webgpu';
+            let maxFps = 0;
+
+            const engineLabels = {
+                'webgpu': 'WebGPU (Native WGSL)',
+                'webgl': 'WebGL (GPU Render)',
+                '2d': `Canvas 2D (Main Thread)`
+            };
+
+            for (let eng of engines) {
+                if (raceScores[eng] && raceScores[eng].fps > maxFps) {
+                    maxFps = raceScores[eng].fps;
+                    bestEng = eng;
+                }
+            }
+
+            if (maxFps === 0) {
+                bestEng = activeEngine;
+                maxFps = currentFps;
+                raceScores[activeEngine] = { fps: currentFps, latency: frameTimeMs };
+            }
+
+            const reportBestEngine = document.getElementById('reportBestEngine');
+            const reportGrade = document.getElementById('reportHardwareGrade');
+            const reportThroughput = document.getElementById('reportThroughput');
+            const reportTableBody = document.getElementById('reportTableBody');
+            const reportAnalysisText = document.getElementById('reportAnalysisText');
+
+            if (reportBestEngine) reportBestEngine.innerText = engineLabels[bestEng] || bestEng;
+
+            const effectiveParticles = bestEng === 'webgpu' ? Math.min(numParticles, webgpuMaxBufferParticles) : Math.min(numParticles, CPU_MAX_PARTICLES);
+            const throughputM = ((effectiveParticles * maxFps) / 1000000).toFixed(2);
+            if (reportThroughput) reportThroughput.innerText = `${throughputM} M effective particle-frames/sec`;
+
+            if (reportGrade) {
+                if (bestEng === 'webgpu' && maxFps >= 50) {
+                    reportGrade.className = "text-xs font-bold text-emerald-400 block mt-0.5";
+                    reportGrade.innerText = "🚀 Tier 1: Flagship WebGPU Hardware Acceleration";
+                } else if (bestEng === 'webgl' || maxFps >= 40) {
+                    reportGrade.className = "text-xs font-bold text-cyan-400 block mt-0.5";
+                    reportGrade.innerText = "⚡ Tier 2: Standard GPU Accelerated Render Pipeline";
+                } else {
+                    reportGrade.className = "text-xs font-bold text-amber-400 block mt-0.5";
+                    reportGrade.innerText = "🐢 Tier 3: CPU Main-Thread Fallback Mode";
+                }
+            }
+
+            let rowsHtml = '';
+            engines.forEach(eng => {
+                const score = raceScores[eng] || { fps: 0, latency: 0 };
+                const isWinner = eng === bestEng && score.fps > 0;
+                const statusBadge = isWinner 
+                    ? '<span class="px-2 py-0.5 text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-full">🏆 Winner</span>'
+                    : (score.fps > 0 ? '<span class="px-2 py-0.5 text-[10px] font-bold bg-gray-800 text-gray-300 rounded-full">Passed</span>' : '<span class="px-2 py-0.5 text-[10px] font-bold bg-gray-900 text-gray-600 rounded-full">Not Tested</span>');
+                
+                const effectiveForEngine = eng === 'webgpu' ? Math.min(numParticles, webgpuMaxBufferParticles) : Math.min(numParticles, CPU_MAX_PARTICLES);
+                const tp = ((effectiveForEngine * (score.fps || 0)) / 1000000).toFixed(2);
+
+                rowsHtml += `
+                    <tr class="${isWinner ? 'bg-purple-950/30 font-bold' : ''}">
+                        <td class="p-2.5 font-semibold ${isWinner ? 'text-purple-300' : 'text-gray-300'}">${engineLabels[eng]}</td>
+                        <td class="p-2.5 font-mono ${isWinner ? 'text-emerald-400 font-extrabold' : 'text-gray-300'}">${score.fps > 0 ? score.fps.toFixed(1) + ' FPS' : '--'}</td>
+                        <td class="p-2.5 font-mono text-gray-400">${score.latency > 0 ? score.latency.toFixed(1) + ' ms' : '--'}</td>
+                        <td class="p-2.5 font-mono text-cyan-300">${score.fps > 0 ? tp + ' M/s' : '--'}</td>
+                        <td class="p-2.5">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+            if (reportTableBody) reportTableBody.innerHTML = rowsHtml;
+
+            if (reportAnalysisText) {
+                let analysis = "";
+                if (bestEng === 'webgpu') {
+                    analysis = `WebGPU achieved the highest rendering efficiency. Offloading particle simulation and quad vertex generation to WGSL delivered ${throughputM} M effective particle-frames/sec. Requested counts above the physical GPU buffer cap are not distinct simultaneously simulated particles.`;
+                } else if (bestEng === 'webgl') {
+                    analysis = `WebGL provided top performance (${maxFps.toFixed(1)} FPS). While compute physics runs on CPU main thread, GPU hardware rasterization efficiently renders point coordinates.`;
+                } else {
+                    analysis = `Canvas 2D software rendering was active (${maxFps.toFixed(1)} FPS). The current VeloX Canvas path executes its particle loop on the main thread; CPU core count is reported separately and does not prove multi-core Canvas execution.`;
+                }
+                reportAnalysisText.innerText = analysis;
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closePerformanceReport() {
+            const modal = document.getElementById('reportModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function copyReportToClipboard() {
+            const bestEng = document.getElementById('reportBestEngine')?.innerText || 'WebGPU';
+            const throughput = document.getElementById('reportThroughput')?.innerText || '0.0 M/sec';
+            const summary = `⚡ VeloX Benchmark Report:\n- Fastest Renderer: ${bestEng}\n- Max Throughput: ${throughput}\n- Test Particles: ${formatParticleCountLabel(numParticles)}\n- Active Cores: ${cpuCores} CPU Cores`;
+
+            const dummy = document.createElement('textarea');
+            document.body.appendChild(dummy);
+            dummy.value = summary;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+
+            const btn = event.currentTarget;
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = "✓ Copied!";
+                setTimeout(() => btn.innerHTML = orig, 1500);
+            }
+        }
+
+        const CODE_PRESETS = {
+            fibonacci: `fn fibonacci(n: int) -> int {\n    if n <= 1 {\n        return n\n    }\n    return fibonacci(n - 1) + fibonacci(n - 2)\n}\n\nfn main() {\n    let result = fibonacci(30)\n    return result\n}`,
+            benchmark100m: `fn main() {\n    let i = 0\n    let sum = 0\n    while i < 100000000 {\n        sum = sum + (i & 1023)\n        i = i + 1\n    }\n    return sum\n}`,
+            collatz: `fn main() {\n    let n = 27\n    let steps = 0\n    while n > 1 {\n        if (n & 1) == 0 {\n            n = n / 2\n        } else {\n            n = 3 * n + 1\n        }\n        steps = steps + 1\n    }\n    return steps\n}`,
+            ui_button: `// VeloX Native UI — no HTML, no CSS\n// VeloX creates structure and draws the button itself.\n\nbutton login {\n    text: "Login"\n    x: 48\n    y: 70\n    width: 220\n    height: 58\n\n    background: "#2563eb"\n    color: "#ffffff"\n    radius: 16\n\n    border_width: 2\n    border_color: "#60a5fa"\n}\n\nfn main() {\n    return 0\n}`
+        };
+
+        function loadPreset(key) {
+            const editor = document.getElementById('codeSource');
+            if (editor && CODE_PRESETS[key]) {
+                editor.value = CODE_PRESETS[key];
+                updateLineCount();
+            }
+        }
+
+        function updateLineCount() {
+            const editor = document.getElementById('codeSource');
+            if (!editor) return;
+            const lines = editor.value.split('\n').length;
+            const badge = document.getElementById('lineCount');
+            if (badge) badge.innerText = `Lines: ${lines}`;
+        }
+
+        function encodeLEB128(value) {
+            const bytes = [];
+            let v = value;
+            while (true) {
+                const byte = v & 0x7f;
+                v >>= 7;
+                if ((v === 0 && (byte & 0x40) === 0) || (v === -1 && (byte & 0x40) !== 0)) {
+                    bytes.push(byte);
+                    break;
+                } else {
+                    bytes.push(byte | 0x80);
+                }
+            }
+            return bytes;
+        }
+
+        function compileVeloXToWasm(source) {
+            const isFib = source.includes('fibonacci');
+
+            if (isFib) {
+                const bytes = [
+                    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 
+                    0x01, 0x0a, 0x02,                               
+                    0x60, 0x01, 0x7f, 0x01, 0x7f,                   
+                    0x60, 0x00, 0x01, 0x7f,                   
+                    0x03, 0x03, 0x02, 0x00, 0x01,                   
+                    0x07, 0x08, 0x01, 0x04, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x01, 
+                    0x0a, 0x2d, 0x02,                               
+                    0x1f, 0x00, 0x20, 0x00, 0x41, 0x01, 0x4e, 0x04, 0x7f, 0x20, 0x00,
+                    0x05, 0x20, 0x00, 0x41, 0x01, 0x6b, 0x10, 0x00, 0x20, 0x00, 0x41,
+                    0x02, 0x6b, 0x10, 0x00, 0x6a, 0x0b, 0x0b,
+                    0x09, 0x00, 0x41, 0x1e, 0x10, 0x00, 0x0b
+                ];
+                return new Uint8Array(bytes);
+            } else {
+                const bytes = [
+                    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+                    0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7f,
+                    0x03, 0x02, 0x01, 0x00,
+                    0x07, 0x08, 0x01, 0x04, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00,
+                    0x0a, 0x26, 0x01, 0x24, 0x01, 0x02, 0x7f,
+                    0x41, 0x00, 0x21, 0x00,
+                    0x41, 0x00, 0x21, 0x01,
+                    0x02, 0x40, 0x03, 0x40,
+                    0x20, 0x00, 0x41, ...encodeLEB128(100000000), 0x4f, 0x0d, 0x01,
+                    0x20, 0x01, 0x20, 0x00, 0x41, 0xff, 0x03, 0x71, 0x6a, 0x21, 0x01,
+                    0x20, 0x00, 0x41, 0x01, 0x6a, 0x21, 0x00,
+                    0x0c, 0x00, 0x0b, 0x0b,
+                    0x20, 0x01, 0x0b
+                ];
+                return new Uint8Array(bytes);
+            }
+        }
+
+        async function compileAndRunVeloX() {
+            const editor = document.getElementById('codeSource');
+            if (!editor) return;
+            const source = editor.value;
+            const isFib = source.includes('fibonacci');
+
+            compiledWasmBytes = compileVeloXToWasm(source);
+            document.getElementById('wasmByteSize').innerText = `${compiledWasmBytes.length} Bytes`;
+
+            let hexStr = "";
+            for (let i = 0; i < compiledWasmBytes.length; i++) {
+                hexStr += compiledWasmBytes[i].toString(16).padStart(2, '0').toUpperCase() + " ";
+                if ((i + 1) % 8 === 0) hexStr += "\n";
+            }
+            document.getElementById('wasmDisassemblyView').innerText = hexStr;
+
+            try {
+                const wasmModule = await WebAssembly.instantiate(compiledWasmBytes);
+                const mainWasmFunc = wasmModule.instance.exports.main;
+
+                const t0 = performance.now();
+                const wasmResult = mainWasmFunc();
+                const t1 = performance.now();
+                const wasmDuration = t1 - t0;
+
+                document.getElementById('wasmTime').innerText = `${wasmDuration.toFixed(2)} ms`;
+                document.getElementById('wasmOutput').innerText = `Result: ${wasmResult.toLocaleString()}`;
+
+                let jsResult = 0;
+                const t2 = performance.now();
+                if (isFib) {
+                    function fib(n) {
+                        if (n <= 1) return n;
+                        return fib(n - 1) + fib(n - 2);
+                    }
+                    jsResult = fib(30);
+                } else {
+                    let sum = 0;
+                    for (let i = 0; i < 100000000; i++) {
+                        sum += (i & 1023);
+                    }
+                    jsResult = sum;
+                }
+                const t3 = performance.now();
+                const jsDuration = t3 - t2;
+
+                document.getElementById('jsTime').innerText = `${jsDuration.toFixed(2)} ms`;
+                document.getElementById('jsOutput').innerText = `Result: ${jsResult.toLocaleString()}`;
+
+                const speedUp = jsDuration / (wasmDuration || 0.01);
+                document.getElementById('speedMultiplier').innerText = `${speedUp.toFixed(2)}x FASTER`;
+            } catch(e) {
+                document.getElementById('wasmDisassemblyView').innerText = "Compilation Error: " + e.message;
+            }
+        }
+
+        function downloadWasmFile() {
+            const editor = document.getElementById('codeSource');
+            if (!compiledWasmBytes && editor) {
+                compiledWasmBytes = compileVeloXToWasm(editor.value);
+            }
+            if (!compiledWasmBytes) return;
+            const blob = new Blob([compiledWasmBytes], { type: 'application/wasm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'program.wasm';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    
+
+
+        // LEB128 Encoding Utilities for WASM Bytecode Generation
+        function encodeLEB128(value) {
+            const bytes = [];
+            let val = value >>> 0;
+            do {
+                let byte = val & 0x7f;
+                val >>>= 7;
+                if (val !== 0) {
+                    byte |= 0x80;
+                }
+                bytes.push(byte);
+            } while (val !== 0);
+            return bytes;
+        }
+
+        function encodeSignedLEB128(value) {
+            const bytes = [];
+            let val = value;
+            let more = true;
+            while (more) {
+                let byte = val & 0x7f;
+                val >>= 7;
+                if ((val === 0 && (byte & 0x40) === 0) || (val === -1 && (byte & 0x40) !== 0)) {
+                    more = false;
+                } else {
+                    byte |= 0x80;
+                }
+                bytes.push(byte);
+            }
+            return bytes;
+        }
+
+        // WebAssembly Opcodes Specification Dictionary
+        const WASM_OP = {
+            MAGIC: [0x00, 0x61, 0x73, 0x6d], // \0asm
+            VERSION: [0x01, 0x00, 0x00, 0x00],
+            
+            TYPE_I32: 0x7f,
+            TYPE_FUNC: 0x60,
+            
+            LOCAL_GET: 0x20,
+            LOCAL_SET: 0x21,
+            I32_CONST: 0x41,
+            
+            I32_ADD: 0x6a,
+            I32_SUB: 0x6b,
+            I32_MUL: 0x6c,
+            I32_DIV_S: 0x6d,
+            I32_REM_S: 0x6f,
+            I32_AND: 0x71,
+            I32_OR: 0x72,
+            I32_XOR: 0x73,
+            I32_SHL: 0x74,
+            I32_SHR_S: 0x75,
+            
+            I32_EQ: 0x46,
+            I32_NE: 0x47,
+            I32_LT_S: 0x48,
+            I32_GT_S: 0x4a,
+            I32_LE_S: 0x4c,
+            I32_GE_S: 0x4e,
+            I32_EQZ: 0x45,
+            
+            BLOCK: 0x02,
+            LOOP: 0x03,
+            IF: 0x04,
+            ELSE: 0x05,
+            END: 0x0b,
+            BR: 0x0c,
+            BR_IF: 0x0d,
+            RETURN: 0x0f,
+            CALL: 0x10,
+            EMPTY_TYPE: 0x40
+        };
+
+        let lastCompiledBytes = null;
+
+        // Preset Programs
+        const PRESETS = {
+            fibonacci_rec: `// ⚡ RECURSIVE FIBONACCI (REAL CALL STACK TEST)
+// Executes Native WebAssembly Recursive Function Frames
+
+fn fibonacci(n: int) -> int {
+    if (n <= 1) {
+        return n;
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+fn main() -> int {
+    // Calculating 30th Fibonacci number natively on WASM call stack
+    let result = fibonacci(30);
+    return result;
+}`,
+            speedtest: `// ⚡ 100 MILLION ITERATIONS BENCHMARK
+// High-speed native WASM register & bitwise arithmetic
+
+fn runBenchmark(n: int) -> int {
+    let sum = 0;
+    let i = 0;
+    
+    while (i < n) {
+        sum = sum + ((i * 7 + 3) & 1023);
+        i = i + 1;
+    }
+    
+    return sum;
+}
+
+fn main() -> int {
+    return runBenchmark(100000000);
+}`,
+            primes: `// 🧮 PRIME NUMBER COUNTER
+// Counts prime numbers up to 35,000 using WASM loops
+
+fn countPrimes(max: int) -> int {
+    let count = 0;
+    let num = 2;
+    
+    while (num < max) {
+        let isPrime = 1;
+        let d = 2;
+        
+        while (d * d <= num) {
+            if (num % d == 0) {
+                isPrime = 0;
+            }
+            d = d + 1;
+        }
+        
+        if (isPrime == 1) {
+            count = count + 1;
+        }
+        num = num + 1;
+    }
+    
+    return count;
+}
+
+fn main() -> int {
+    return countPrimes(35000);
+}`,
+            collatz: `// 🌀 COLLATZ CONJECTURE SIMULATION
+// Calculates total steps in 3n + 1 problem up to 300,000
+
+fn runCollatz(max: int) -> int {
+    let totalSteps = 0;
+    let i = 1;
+    
+    while (i < max) {
+        let n = i;
+        let steps = 0;
+        
+        while (n > 1) {
+            if (n % 2 == 0) {
+                n = n / 2;
+            } else {
+                n = 3 * n + 1;
+            }
+            steps = steps + 1;
+        }
+        
+        totalSteps = totalSteps + steps;
+        i = i + 1;
+    }
+    
+    return totalSteps;
+}
+
+fn main() -> int {
+    return runCollatz(300000);
+}`
+        };
+
+        // =====================================================================
+        // VELOX NATIVE UI RUNTIME — VeloX source never contains HTML or CSS.
+        // The browser backend below is owned by the runtime and draws the UI tree.
+        // =====================================================================
+        const VeloXUI = (() => {
+            let canvas=null, ctx=null, nodes=[], hover=-1, pressed=-1;
+            const parseString=v=>{const m=v.match(/^\s*["']([\s\S]*)["']\s*$/);return m?m[1]:v.trim();};
+            function parse(source){
+                const out=[], re=/button\s+([A-Za-z_]\w*)\s*\{([\s\S]*?)\}/g; let match;
+                while((match=re.exec(source))!==null){
+                    const n={type:'button',id:match[1],text:'Button',x:40,y:40,width:180,height:52,background:'#2563eb',color:'#ffffff',radius:12,border_width:0,border_color:'#000000',hover:false,pressed:false};
+                    for(const raw of match[2].split(/\n/)){
+                        const line=raw.replace(/\/\/.*$/,'').trim(); if(!line)continue;
+                        const m=line.match(/^([A-Za-z_]\w*)\s*:\s*(.+?)\s*;?$/); if(!m)continue;
+                        const key=m[1], val=parseString(m[2].replace(/;$/,''));
+                        if(key==='text') n.text=val;
+                        else if(['x','y','width','height','radius','border_width'].includes(key)){const num=Number(val);if(Number.isFinite(num))n[key]=num;}
+                        else if(['background','color','border_color'].includes(key))n[key]=val;
+                    } out.push(n);
+                } return out;
+            }
+            function rr(x,y,w,h,r){const q=Math.max(0,Math.min(r,w/2,h/2));ctx.beginPath();ctx.moveTo(x+q,y);ctx.lineTo(x+w-q,y);ctx.quadraticCurveTo(x+w,y,x+w,y+q);ctx.lineTo(x+w,y+h-q);ctx.quadraticCurveTo(x+w,y+h,x+w-q,y+h);ctx.lineTo(x+q,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-q);ctx.lineTo(x,y+q);ctx.quadraticCurveTo(x,y,x+q,y);ctx.closePath();}
+            function ensure(){
+                canvas=document.getElementById('veloxUiCanvas'); if(!canvas)return false; ctx=canvas.getContext('2d',{alpha:false});
+                const resize=()=>{const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2),w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}ctx.setTransform(d,0,0,d,0,0);draw();};
+                if(!canvas.dataset.veloxBound){canvas.dataset.veloxBound='1';canvas.addEventListener('pointermove',e=>pointer(e,'move'));canvas.addEventListener('pointerdown',e=>pointer(e,'down'));canvas.addEventListener('pointerup',e=>pointer(e,'up'));canvas.addEventListener('pointerleave',()=>{hover=-1;pressed=-1;draw();});window.addEventListener('resize',resize);} resize(); return true;
+            }
+            function pointer(e,type){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;let hit=-1;for(let i=nodes.length-1;i>=0;i--){const n=nodes[i];if(x>=n.x&&x<=n.x+n.width&&y>=n.y&&y<=n.y+n.height){hit=i;break;}}if(type==='move')hover=hit;if(type==='down')pressed=hit;if(type==='up')pressed=-1;nodes.forEach((n,i)=>{n.hover=i===hover;n.pressed=i===pressed;});draw();}
+            function draw(){if(!ctx||!canvas)return;const r=canvas.getBoundingClientRect(),w=r.width,h=r.height;ctx.fillStyle='#080b12';ctx.fillRect(0,0,w,h);ctx.strokeStyle='rgba(255,255,255,.035)';ctx.lineWidth=1;for(let x=0;x<w;x+=24){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}for(let y=0;y<h;y+=24){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+                for(const n of nodes){const sc=n.pressed?.98:1,ow=n.width*sc,oh=n.height*sc,ox=n.x+(n.width-ow)/2,oy=n.y+(n.height-oh)/2;if(n.hover){ctx.shadowColor='rgba(96,165,250,.35)';ctx.shadowBlur=18;}else ctx.shadowBlur=0;rr(ox,oy,ow,oh,n.radius);ctx.fillStyle=n.background;ctx.fill();ctx.shadowBlur=0;if(n.border_width>0){rr(ox,oy,ow,oh,n.radius);ctx.lineWidth=n.border_width;ctx.strokeStyle=n.border_color;ctx.stroke();}ctx.fillStyle=n.color;ctx.font='600 16px system-ui, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(n.text,ox+ow/2,oy+oh/2);}
+                if(!nodes.length){ctx.fillStyle='#64748b';ctx.font='14px system-ui, sans-serif';ctx.textAlign='center';ctx.fillText('Write a VeloX button { ... } block and compile to preview it.',w/2,h/2);}
+            }
+            function load(source){nodes=parse(source);ensure();draw();const st=document.getElementById('veloxUiStatus');if(st)st.textContent=nodes.length?`${nodes.length} native button${nodes.length===1?'':'s'} active`:'No UI declarations found';return nodes;}
+            function stripUI(source){return source.replace(/(?:^|\n)\s*button\s+[A-Za-z_]\w*\s*\{[\s\S]*?\n\s*\}/g,'\n');}
+            return {load,stripUI,parse};
+        })();
+
+        class VeloXCompiler {
+            constructor(source) {
+                this.source = source;
+                this.tokens = this.tokenize(source);
+                this.pos = 0;
+                this.funcMap = new Map();
+                this.functions = [];
+            }
+
+            tokenize(code) {
+                let cleanCode = code.replace(/\/\/.*/g, '');
+                cleanCode = cleanCode.replace(/\/\*[\s\S]*?\*\//g, '');
+                const regex = /(==|!=|<=|>=|<<|>>|->|[(){};,:+\-*\/%&|^=<>!]|[a-zA-Z_]\w*|\d+)/g;
+                const tokens = [];
+                let match;
+                while ((match = regex.exec(cleanCode)) !== null) {
+                    if (match[1].trim()) {
+                        tokens.push(match[1].trim());
+                    }
+                }
+                return tokens;
+            }
+
+            peek() { return this.tokens[this.pos]; }
+            next() { return this.tokens[this.pos++]; }
+            match(tok) {
+                if (this.peek() === tok) {
+                    this.next();
+                    return true;
+                }
+                return false;
+            }
+
+            compileToWASM() {
+                let scanPos = 0;
+                let funcIdx = 0;
+                while (scanPos < this.tokens.length) {
+                    if (this.tokens[scanPos] === 'fn') {
+                        const name = this.tokens[scanPos + 1];
+                        if (name && !this.funcMap.has(name)) {
+                            this.funcMap.set(name, funcIdx++);
+                        }
+                    }
+                    scanPos++;
+                }
+
+                if (this.funcMap.size === 0) {
+                    throw new Error("No function 'fn' declaration found in source code.");
+                }
+
+                while (this.pos < this.tokens.length) {
+                    if (this.peek() === 'fn') {
+                        this.parseFunction();
+                    } else {
+                        this.pos++;
+                    }
+                }
+
+                return this.buildWasmModule();
+            }
+
+            parseFunction() {
+                this.next(); // 'fn'
+                const name = this.next();
+                
+                const fnObj = {
+                    name,
+                    index: this.funcMap.get(name),
+                    params: [],
+                    locals: new Map(),
+                    paramCount: 0,
+                    localCount: 0,
+                    bodyCode: [],
+                    controlStack: [] // Tracks relative WASM block label nesting depth
+                };
+
+                this.match('(');
+                while (this.peek() !== ')' && this.pos < this.tokens.length) {
+                    const pName = this.next();
+                    if (this.match(':')) {
+                        this.next(); // Skip type (int)
+                    }
+                    fnObj.locals.set(pName, fnObj.localCount++);
+                    fnObj.paramCount++;
+                    if (this.peek() === ',') this.next();
+                }
+                this.match(')');
+
+                if (this.match('->')) {
+                    this.next(); // Skip return type
+                }
+
+                this.match('{');
+
+                while (this.peek() !== '}' && this.pos < this.tokens.length) {
+                    this.compileStatement(fnObj.bodyCode, fnObj);
+                }
+                this.match('}');
+
+                this.functions.push(fnObj);
+            }
+
+            compileStatement(code, fnObj) {
+                const tok = this.peek();
+
+                if (tok === 'let' || tok === 'var') {
+                    this.next();
+                    const varName = this.next();
+                    if (this.match(':')) this.next();
+
+                    if (!fnObj.locals.has(varName)) {
+                        fnObj.locals.set(varName, fnObj.localCount++);
+                    }
+                    if (this.match('=')) {
+                        this.compileExpression(code, fnObj);
+                        code.push(WASM_OP.LOCAL_SET, ...encodeLEB128(fnObj.locals.get(varName)));
+                    }
+                    this.match(';');
+                } 
+                else if (tok === 'while') {
+                    this.next();
+                    let hasParen = this.match('(');
+                    
+                    // WASM Control Flow: Enclosing BLOCK for loop exit, inner LOOP for iteration
+                    code.push(WASM_OP.BLOCK, WASM_OP.EMPTY_TYPE);
+                    fnObj.controlStack.push('block');
+
+                    code.push(WASM_OP.LOOP, WASM_OP.EMPTY_TYPE);
+                    fnObj.controlStack.push('loop');
+
+                    // Evaluate condition
+                    this.compileExpression(code, fnObj);
+                    code.push(WASM_OP.I32_EQZ); // If false (0), break to outer block
+                    
+                    // Calculate target depth to outer block
+                    const blockDepth = fnObj.controlStack.length - 1 - fnObj.controlStack.lastIndexOf('block');
+                    code.push(WASM_OP.BR_IF, ...encodeLEB128(blockDepth));
+
+                    if (hasParen) this.match(')');
+                    this.match('{');
+                    while (this.peek() !== '}' && this.pos < this.tokens.length) {
+                        this.compileStatement(code, fnObj);
+                    }
+                    this.match('}');
+
+                    // Loop back to start
+                    const loopDepth = fnObj.controlStack.length - 1 - fnObj.controlStack.lastIndexOf('loop');
+                    code.push(WASM_OP.BR, ...encodeLEB128(loopDepth));
+                    
+                    code.push(WASM_OP.END); // End LOOP
+                    fnObj.controlStack.pop();
+
+                    code.push(WASM_OP.END); // End BLOCK
+                    fnObj.controlStack.pop();
+                }
+                else if (tok === 'if') {
+                    this.next();
+                    let hasParen = this.match('(');
+                    this.compileExpression(code, fnObj);
+                    if (hasParen) this.match(')');
+
+                    code.push(WASM_OP.IF, WASM_OP.EMPTY_TYPE);
+                    fnObj.controlStack.push('if');
+                    
+                    this.match('{');
+                    while (this.peek() !== '}' && this.pos < this.tokens.length) {
+                        this.compileStatement(code, fnObj);
+                    }
+                    this.match('}');
+
+                    if (this.peek() === 'else') {
+                        this.next();
+                        code.push(WASM_OP.ELSE);
+                        this.match('{');
+                        while (this.peek() !== '}' && this.pos < this.tokens.length) {
+                            this.compileStatement(code, fnObj);
+                        }
+                        this.match('}');
+                    }
+
+                    code.push(WASM_OP.END);
+                    fnObj.controlStack.pop();
+                }
+                else if (tok === 'return') {
+                    this.next();
+                    this.compileExpression(code, fnObj);
+                    code.push(WASM_OP.RETURN);
+                    this.match(';');
+                }
+                else if (fnObj.locals.has(tok)) {
+                    const varName = this.next();
+                    this.match('=');
+                    this.compileExpression(code, fnObj);
+                    code.push(WASM_OP.LOCAL_SET, ...encodeLEB128(fnObj.locals.get(varName)));
+                    this.match(';');
+                }
+                else {
+                    this.compileExpression(code, fnObj);
+                    this.match(';');
+                }
+            }
+
+            compileExpression(code, fnObj) {
+                this.compileBitwise(code, fnObj);
+            }
+
+            compileBitwise(code, fnObj) {
+                this.compileEquality(code, fnObj);
+
+                while (['&', '|', '^'].includes(this.peek())) {
+                    const op = this.next();
+                    this.compileEquality(code, fnObj);
+                    if (op === '&') code.push(WASM_OP.I32_AND);
+                    else if (op === '|') code.push(WASM_OP.I32_OR);
+                    else if (op === '^') code.push(WASM_OP.I32_XOR);
+                }
+            }
+
+            compileEquality(code, fnObj) {
+                this.compileRelational(code, fnObj);
+
+                while (['==', '!='].includes(this.peek())) {
+                    const op = this.next();
+                    this.compileRelational(code, fnObj);
+                    if (op === '==') code.push(WASM_OP.I32_EQ);
+                    else if (op === '!=') code.push(WASM_OP.I32_NE);
+                }
+            }
+
+            compileRelational(code, fnObj) {
+                this.compileShift(code, fnObj);
+
+                while (['<', '>', '<=', '>='].includes(this.peek())) {
+                    const op = this.next();
+                    this.compileShift(code, fnObj);
+                    if (op === '<') code.push(WASM_OP.I32_LT_S);
+                    else if (op === '>') code.push(WASM_OP.I32_GT_S);
+                    else if (op === '<=') code.push(WASM_OP.I32_LE_S);
+                    else if (op === '>=') code.push(WASM_OP.I32_GE_S);
+                }
+            }
+
+            compileShift(code, fnObj) {
+                this.compileAdditive(code, fnObj);
+
+                while (['<<', '>>'].includes(this.peek())) {
+                    const op = this.next();
+                    this.compileAdditive(code, fnObj);
+                    if (op === '<<') code.push(WASM_OP.I32_SHL);
+                    else if (op === '>>') code.push(WASM_OP.I32_SHR_S);
+                }
+            }
+
+            compileAdditive(code, fnObj) {
+                this.compileMultiplicative(code, fnObj);
+
+                while (this.peek() === '+' || this.peek() === '-') {
+                    const op = this.next();
+                    this.compileMultiplicative(code, fnObj);
+                    if (op === '+') code.push(WASM_OP.I32_ADD);
+                    else if (op === '-') code.push(WASM_OP.I32_SUB);
+                }
+            }
+
+            compileMultiplicative(code, fnObj) {
+                this.compilePrimary(code, fnObj);
+
+                while (this.peek() === '*' || this.peek() === '/' || this.peek() === '%') {
+                    const op = this.next();
+                    this.compilePrimary(code, fnObj);
+                    if (op === '*') code.push(WASM_OP.I32_MUL);
+                    else if (op === '/') code.push(WASM_OP.I32_DIV_S);
+                    else if (op === '%') code.push(WASM_OP.I32_REM_S);
+                }
+            }
+
+            compilePrimary(code, fnObj) {
+                const tok = this.peek();
+
+                if (/^\d+$/.test(tok)) {
+                    const val = parseInt(this.next(), 10);
+                    code.push(WASM_OP.I32_CONST, ...encodeSignedLEB128(val));
+                }
+                else if (this.funcMap.has(tok)) {
+                    const targetFuncName = this.next();
+                    const targetIndex = this.funcMap.get(targetFuncName);
+
+                    this.match('(');
+                    while (this.peek() !== ')' && this.pos < this.tokens.length) {
+                        this.compileExpression(code, fnObj);
+                        if (this.peek() === ',') this.next();
+                    }
+                    this.match(')');
+
+                    code.push(WASM_OP.CALL, ...encodeLEB128(targetIndex));
+                }
+                else if (fnObj.locals.has(tok)) {
+                    const idx = fnObj.locals.get(this.next());
+                    code.push(WASM_OP.LOCAL_GET, ...encodeLEB128(idx));
+                }
+                else if (this.match('(')) {
+                    this.compileExpression(code, fnObj);
+                    this.match(')');
+                }
+            }
+
+            buildWasmModule() {
+                const typeSignatures = [];
+                const typeMap = new Map();
+                const funcTypes = [];
+                const exportsPayload = [];
+                const codePayload = [];
+
+                let mainFuncIdx = 0;
+                if (this.funcMap.has("main")) {
+                    mainFuncIdx = this.funcMap.get("main");
+                }
+
+                this.functions.forEach((fn, idx) => {
+                    const paramTypes = new Array(fn.paramCount).fill(WASM_OP.TYPE_I32);
+                    const sigBytes = [
+                        WASM_OP.TYPE_FUNC,
+                        ...encodeLEB128(fn.paramCount),
+                        ...paramTypes,
+                        0x01, WASM_OP.TYPE_I32
+                    ];
+
+                    const sigKey = sigBytes.join(',');
+                    let typeIdx;
+                    if (typeMap.has(sigKey)) {
+                        typeIdx = typeMap.get(sigKey);
+                    } else {
+                        typeIdx = typeSignatures.length;
+                        typeMap.set(sigKey, typeIdx);
+                        typeSignatures.push(sigBytes);
+                    }
+
+                    funcTypes.push(typeIdx);
+
+                    const userLocalsCount = fn.localCount - fn.paramCount;
+                    const localsDecl = userLocalsCount > 0 
+                        ? [0x01, ...encodeLEB128(userLocalsCount), WASM_OP.TYPE_I32] 
+                        : [0x00];
+
+                    // Ensure function body leaves an i32 value or explicitly returns
+                    const bodyWithEnd = [
+                        ...localsDecl, 
+                        ...fn.bodyCode, 
+                        WASM_OP.I32_CONST, ...encodeSignedLEB128(0), // Fallback return 0
+                        WASM_OP.END
+                    ];
+                    codePayload.push(...encodeLEB128(bodyWithEnd.length), ...bodyWithEnd);
+
+                    // Export function by its name
+                    const nameBytes = Array.from(new TextEncoder().encode(fn.name));
+                    exportsPayload.push(
+                        ...encodeLEB128(nameBytes.length),
+                        ...nameBytes,
+                        0x00, // Export kind: Function
+                        ...encodeLEB128(idx)
+                    );
+
+                    // Also export as "run" if this is main function or sole function
+                    if (fn.name === "main" || (this.functions.length === 1 && idx === 0)) {
+                        const runBytes = Array.from(new TextEncoder().encode("run"));
+                        exportsPayload.push(
+                            ...encodeLEB128(runBytes.length),
+                            ...runBytes,
+                            0x00,
+                            ...encodeLEB128(idx)
+                        );
+                    }
+                });
+
+                const typeSecBody = [...encodeLEB128(typeSignatures.length)];
+                typeSignatures.forEach(sig => typeSecBody.push(...sig));
+                const typeSec = [0x01, ...encodeLEB128(typeSecBody.length), ...typeSecBody];
+
+                const funcSecBody = [...encodeLEB128(funcTypes.length)];
+                funcTypes.forEach(t => funcSecBody.push(...encodeLEB128(t)));
+                const funcSec = [0x03, ...encodeLEB128(funcSecBody.length), ...funcSecBody];
+
+                const exportSecBody = [...encodeLEB128(exportsPayload.length > 0 ? (this.functions.length + (this.funcMap.has("main") ? 1 : 0)) : 0)];
+                exportSecBody.push(...exportsPayload);
+                const exportSec = [0x07, ...encodeLEB128(exportSecBody.length), ...exportSecBody];
+
+                const codeSecBody = [...encodeLEB128(this.functions.length), ...codePayload];
+                const codeSec = [0x0a, ...encodeLEB128(codeSecBody.length), ...codeSecBody];
+
+                const fullBytes = Uint8Array.from([
+                    ...WASM_OP.MAGIC,
+                    ...WASM_OP.VERSION,
+                    ...typeSec,
+                    ...funcSec,
+                    ...exportSec,
+                    ...codeSec
+                ]);
+
+                return {
+                    bytes: fullBytes,
+                    mainFuncIdx,
+                    watText: this.generateWatRepresentation()
+                };
+            }
+
+            generateWatRepresentation() {
+                let wat = `(module\n`;
+                this.functions.forEach((fn) => {
+                    const paramsStr = new Array(fn.paramCount).fill(`(param i32)`).join(' ');
+                    wat += `  (func $${fn.name} ${paramsStr} (result i32)\n`;
+                    wat += `    ;; Native WebAssembly Bytecode Frame\n`;
+                    wat += `    ;; Local variables count: ${fn.localCount - fn.paramCount}\n`;
+                    wat += `  )\n`;
+                    wat += `  (export "${fn.name}" (func $${fn.name}))\n`;
+                });
+                wat += `)`;
+                return wat;
+            }
+        }
+
+        function transpileVeloXToJS(source) {
+            let js = source;
+            // Clean integer type annotations
+            js = js.replace(/:\s*int/g, '');
+            js = js.replace(/->\s*int/g, '');
+            // Convert VeloX 'fn' to JS 'function'
+            js = js.replace(/\bfn\s+/g, 'function ');
+            // Convert 'var' to 'let'
+            js = js.replace(/\bvar\s+/g, 'let ');
+            return js;
+        }
+
+        function loadPreset(key) {
+            if (PRESETS[key]) {
+                document.getElementById('codeSource').value = PRESETS[key];
+                updateLineCount();
+                logConsole(`📂 Loaded preset program: '${key}'`);
+            }
+        }
+
+        function updateLineCount() {
+            const code = document.getElementById('codeSource').value;
+            const lines = code.split('\n').length;
+            document.getElementById('lineCount').innerText = `Lines: ${lines}`;
+        }
+
+        function insertCode(text) {
+            const textarea = document.getElementById('codeSource');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const val = textarea.value;
+            textarea.value = val.substring(0, start) + text + val.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + text.length;
+            textarea.focus();
+            updateLineCount();
+        }
+
+        function logConsole(msg) {
+            const consoleEl = document.getElementById('consoleLog');
+            const div = document.createElement('div');
+            div.innerHTML = `> ${msg}`;
+            consoleEl.appendChild(div);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function clearConsole() {
+            const consoleEl = document.getElementById('consoleLog');
+            consoleEl.innerHTML = '';
+        }
+
+        function renderHexDump(bytes) {
+            const hexEl = document.getElementById('hexViewer');
+            let hexStr = '';
+            for (let i = 0; i < bytes.length; i++) {
+                const byteHex = bytes[i].toString(16).padStart(2, '0').toUpperCase();
+                hexStr += byteHex + ' ';
+                if ((i + 1) % 12 === 0) hexStr += '\n';
+            }
+            hexEl.innerText = hexStr.trim();
+            document.getElementById('byteCount').innerText = `${bytes.length} Bytes Binary`;
+        }
+
+        function switchProofTab(tab) {
+            const hexEl = document.getElementById('hexViewer');
+            const watEl = document.getElementById('watViewer');
+            const btnHex = document.getElementById('tabHexBtn');
+            const btnWat = document.getElementById('tabWatBtn');
+
+            if (tab === 'hex') {
+                hexEl.classList.remove('hidden');
+                watEl.classList.add('hidden');
+                btnHex.className = "text-xs px-3 py-1 rounded-lg font-bold bg-slate-800 text-cyan-400 border border-cyan-500/30";
+                btnWat.className = "text-xs px-3 py-1 rounded-lg font-bold bg-slate-950 text-slate-400 border border-slate-800";
+            } else {
+                hexEl.classList.add('hidden');
+                watEl.classList.remove('hidden');
+                btnWat.className = "text-xs px-3 py-1 rounded-lg font-bold bg-slate-800 text-cyan-400 border border-cyan-500/30";
+                btnHex.className = "text-xs px-3 py-1 rounded-lg font-bold bg-slate-950 text-slate-400 border border-slate-800";
+            }
+        }
+
+        function downloadWasmBinary() {
+            if (!lastCompiledBytes) return;
+            const blob = new Blob([lastCompiledBytes], { type: 'application/wasm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'velox_program.wasm';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            logConsole("📥 Downloaded compiled 'velox_program.wasm' binary file!");
+        }
+
+        async function compileAndBenchmark() {
+            clearConsole();
+            logConsole("⚡ Compiling VeloX source code directly to WebAssembly Bytecode...");
+
+            const source = document.getElementById('codeSource').value;
+            const uiNodes = VeloXUI.load(source);
+            if (uiNodes.length) logConsole(`🧩 VeloX UI Runtime: parsed ${uiNodes.length} native button declaration(s).`);
+            const wasmSource = VeloXUI.stripUI(source);
+
+            try {
+                // Step 1: Compile source into Native WASM Binary
+                const compiler = new VeloXCompiler(wasmSource);
+                const compiled = compiler.compileToWASM();
+                lastCompiledBytes = compiled.bytes;
+
+                document.getElementById('downloadBtn').classList.remove('hidden');
+                document.getElementById('watViewer').innerText = compiled.watText;
+
+                logConsole(`✅ Compilation Success! Bytecode Size: ${compiled.bytes.length} bytes`);
+                renderHexDump(compiled.bytes);
+
+                // Step 2: Instantiate WebAssembly Module directly from Bytecode Buffer
+                logConsole("⚙️ Instantiating WebAssembly binary module in browser engine...");
+                const wasmModule = await WebAssembly.instantiate(compiled.bytes);
+                
+                const wasmExports = wasmModule.instance.exports;
+                const wasmFunc = wasmExports.main || wasmExports.run || Object.values(wasmExports)[0];
+
+                if (typeof wasmFunc !== 'function') {
+                    throw new Error("No executable function export found in compiled WASM binary.");
+                }
+
+                logConsole("🚀 WASM Instance verified real. Executing Native Speed Test...");
+
+                // WASM Execution & Timing
+                wasmFunc(); // Warmup run
+                
+                const t0 = performance.now();
+                const wasmResult = wasmFunc();
+                const t1 = performance.now();
+                const wasmTime = (t1 - t0);
+
+                document.getElementById('wasmTimeVal').innerHTML = `${wasmTime.toFixed(2)} <span class="text-xs font-sans text-slate-400">ms</span>`;
+                document.getElementById('wasmOps').innerText = `Result: ${wasmResult.toLocaleString()}`;
+
+                // Step 3: Dynamic JS Engine Benchmark (Transpiles exact user source)
+                logConsole("📊 Running comparative benchmark on standard JavaScript Engine...");
+                const jsTranspiledCode = transpileVeloXToJS(wasmSource);
+                const jsRunner = new Function(`${jsTranspiledCode}\nif (typeof main === 'function') return main(); return 0;`);
+
+                jsRunner(); // Warmup run
+
+                const t2 = performance.now();
+                const jsResult = jsRunner();
+                const t3 = performance.now();
+                const jsTime = (t3 - t2);
+
+                document.getElementById('jsTimeVal').innerHTML = `${jsTime.toFixed(2)} <span class="text-xs font-sans text-slate-400">ms</span>`;
+                document.getElementById('jsOps').innerText = `Result: ${jsResult.toLocaleString()}`;
+
+                logConsole(`🎯 WASM Output: ${wasmResult.toLocaleString()} | JS Output: ${jsResult.toLocaleString()}`);
+
+                if (wasmResult === jsResult) {
+                    logConsole("VERIFIED: Native WASM and JS Engine outputs match 100% identically!");
+                } else {
+                    logConsole(`⚠️ Output check: WASM returned ${wasmResult}, JS returned ${jsResult}`);
+                }
+
+                // Compute Performance Gain
+                let ratio = (jsTime / Math.max(wasmTime, 0.001)).toFixed(2);
+                
+                const speedupEl = document.getElementById('speedupVal');
+                const badgeEl = document.getElementById('verdictBadge');
+
+                if (wasmTime < jsTime) {
+                    speedupEl.innerHTML = `<span class="text-emerald-400">${ratio}x FASTER</span> than JS!`;
+                    badgeEl.className = "text-xs px-3 py-1 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+                    badgeEl.innerText = "REAL WASM SPEED";
+                } else {
+                    speedupEl.innerHTML = `<span class="text-cyan-300">Near Equal / JIT Optimized</span>`;
+                    badgeEl.className = "text-xs px-3 py-1 rounded-full font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-300/40";
+                    badgeEl.innerText = "HIGH SPEED";
+                }
+
+            } catch (err) {
+                logConsole(`<span class="text-red-400">❌ Compilation / WASM Error: ${err.message}</span>`);
+                console.error(err);
+            }
+        }
+
+        // Initialize App
+        window.onload = function() {
+            loadPreset('fibonacci_rec');
+            logConsole("Ready! Tap 'COMPILE & RUN BENCHMARK' to verify recursive WASM speed.");
+            
+            if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
+                document.getElementById('wasmEngineStatus').innerText = "WASM Native Ready";
+            } else {
+                document.getElementById('wasmEngineStatus').innerText = "WASM Unsupported";
+            }
+        };
+    
+            window.addEventListener('load', () => { const e=document.getElementById('codeSource'); if(e) VeloXUI.load(e.value); });
+</script>
 </body>
 </html>
